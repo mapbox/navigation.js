@@ -1,0 +1,20 @@
+{
+  "name": "navigation.js",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "tape tests/navigation.test.js",
+    "docs": "documentation-readme readme.md -s 'API Usage' documentation --format md --output readme.md"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "turf": "^2.0.2"
+  },
+  "devDependencies": {
+    "documentation": "^3.0.4",
+    "documentation-readme": "^2.1.1",
+    "tape": "^4.4.0"
+  }
+}
