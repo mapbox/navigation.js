@@ -23,7 +23,7 @@ Given a user location and route, calculates closest step to user
 -   `user`  
 -   `route`  
 
-Returns **boolean**
+Returns **number** Step
 
 ### shouldReRoute
 

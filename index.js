@@ -28,7 +28,7 @@ navigation.shouldReRoute = function(user, route) {
  * Given a user location and route, calculates closest step to user
  * @param {object} GeoJSON point feature representing user location
  * @param {object} Route from Mapbox directions API
- * @returns {boolean}
+ * @returns {number} Step
  */
 navigation.findClosestStepToUser = function(user, route) {
     var lowest = Infinity;
