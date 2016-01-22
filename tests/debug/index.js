@@ -51,3 +51,11 @@ map.on('mousemove', function(e) {
     var step = navigation.findClosestStepToUser(userLocation, mapboxDirectionRoute);
     document.getElementById('step').innerHTML = step;
 });
+
+
+for (var i = 0; i < mapboxDirectionRoute.routes[0].steps.length; i++) {
+    var maneuver = mapboxDirectionRoute.routes[0].steps[i].maneuver;
+    L.marker([maneuver.location.coordinates[1], maneuver.location.coordinates[0]])
+        .bindPopup(maneuver.instruction)
+        .addTo(map);
+}
