@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "tape tests/navigation.test.js",
+    "debug-map": "watchify ./tests/debug/index.js -o ./tests/debug/bundle.js -d",
     "docs": "documentation-readme readme.md -s 'API Usage' documentation --format md --output readme.md"
   },
   "author": "",
@@ -13,8 +14,12 @@
     "turf": "^2.0.2"
   },
   "devDependencies": {
+    "browserify": "^13.0.0",
     "documentation": "^3.0.4",
     "documentation-readme": "^2.1.1",
-    "tape": "^4.4.0"
+    "leaflet-hash": "^0.2.1",
+    "mapbox.js": "^2.2.4",
+    "tape": "^4.4.0",
+    "watchify": "^3.7.0"
   }
 }

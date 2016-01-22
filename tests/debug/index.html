@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8 />
+<title>A simple map</title>
+<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+<link href='https://api.mapbox.com/mapbox.js/v2.2.4/mapbox.css' rel='stylesheet' />
+<style>
+  body { margin:0; padding:0; font-family: 'Open Sans', 'Helvetica Neue', sans-serif; }
+  #map { position:absolute; top:0; bottom:0; width:100%; }
+  .container {
+      position: absolute;
+      top: 0;
+      right: 0;
+      padding: 20px;
+      z-index: 10;
+      background-color: white;
+      min-width: 290px;
+  }
+
+</style>
+</head>
+<body>
+<div class='container'>
+    <h3>navigation.js</h3>
+    <p>Should you re-route the user? <span id='reroute'>false</span></p>
+    <p>Current Step: <span id='step'></span></p>
+</div>
+<div id='map'></div>
+<script src='bundle.js'></script>
+</body>
+</html>
