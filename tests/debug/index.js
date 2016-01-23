@@ -1,7 +1,7 @@
 require('mapbox.js');
 var mapboxDirectionRoute = require('../fixtures/route');
 var navigation = require('../../');
-var hash = require('leaflet-hash');
+require('leaflet-hash');
 var center = [39.9432, -75.1433];
 
 L.mapbox.accessToken = 'pk.eyJ1IjoiYm9iYnlzdWQiLCJhIjoiTi16MElIUSJ9.Clrqck--7WmHeqqvtFdYig';
@@ -9,7 +9,7 @@ L.mapbox.accessToken = 'pk.eyJ1IjoiYm9iYnlzdWQiLCJhIjoiTi16MElIUSJ9.Clrqck--7WmH
 var map = L.mapbox.map('map', 'mapbox.streets')
     .setView(center, 14);
 
-var hash = L.hash(map);
+L.hash(map);
 
 var route = {
     'type': 'FeatureCollection',
@@ -23,7 +23,7 @@ var route = {
             }
         }
     ]
-}
+};
 
 var userLocation = {
     type: 'Feature',

@@ -7,7 +7,6 @@ var defaults = {
 
 var navigation = module.exports = {};
 
-
 /**
  * Given a user location and route, calculates whether re-routing should occur
  * @param {object} GeoJSON point feature representing user location
