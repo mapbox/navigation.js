@@ -1,6 +1,11 @@
 require('mapbox.js');
 var mapboxDirectionRoute = require('../fixtures/route');
-var navigation = require('../../');
+
+var navigation = require('../../')({
+    units: 'miles',
+    maxDistance: 0.1
+});
+
 var hash = require('leaflet-hash');
 var center = [39.9432, -75.1433];
 
@@ -49,13 +54,18 @@ map.on('mousemove', function(e) {
     document.getElementById('reroute').innerHTML = shouldReRoute;
 
     var nextStep = navigation.findNextStep(userLocation, mapboxDirectionRoute);
-    document.getElementById('step').innerHTML = mapboxDirectionRoute.routes[0].steps[nextStep].maneuver.instruction;
+    document.getElementById('step').innerHTML = 'In ' + Math.round(nextStep.distance * 5280) + ' '+ mapboxDirectionRoute.routes[0].steps[nextStep.step].maneuver.instruction;
 });
 
 
 for (var i = 0; i < mapboxDirectionRoute.routes[0].steps.length; i++) {
     var maneuver = mapboxDirectionRoute.routes[0].steps[i].maneuver;
-    L.marker([maneuver.location.coordinates[1], maneuver.location.coordinates[0]])
+
+    L.circle([maneuver.location.coordinates[1], maneuver.location.coordinates[0]], 30, {
+        color: 'black',
+        weight: 1,
+        fillColor: 'black'
+    })
         .bindPopup(maneuver.instruction + '. Step: ' + i)
         .addTo(map);
-}
+};
