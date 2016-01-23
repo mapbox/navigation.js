@@ -48,14 +48,14 @@ map.on('mousemove', function(e) {
     var shouldReRoute = navigation.shouldReRoute(userLocation, mapboxDirectionRoute);
     document.getElementById('reroute').innerHTML = shouldReRoute;
 
-    var step = navigation.findClosestStepToUser(userLocation, mapboxDirectionRoute);
-    document.getElementById('step').innerHTML = step;
+    var nextStep = navigation.findNextStep(userLocation, mapboxDirectionRoute);
+    document.getElementById('step').innerHTML = mapboxDirectionRoute.routes[0].steps[nextStep].maneuver.instruction;
 });
 
 
 for (var i = 0; i < mapboxDirectionRoute.routes[0].steps.length; i++) {
     var maneuver = mapboxDirectionRoute.routes[0].steps[i].maneuver;
     L.marker([maneuver.location.coordinates[1], maneuver.location.coordinates[0]])
-        .bindPopup(maneuver.instruction)
+        .bindPopup(maneuver.instruction + '. Step: ' + i)
         .addTo(map);
 }
