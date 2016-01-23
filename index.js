@@ -1,6 +1,6 @@
 var turf = require('turf');
 
-var navigation = module.exports = function(opts){
+module.exports = function(opts) {
     /**
     * Configuration options
     * @param {object} `units` - either `miles` or `km`. `maxDistance` - max distance the user can be from the route
@@ -65,7 +65,6 @@ var navigation = module.exports = function(opts){
             properties: {},
             geometry: route.routes[0].steps[currentStep.step].maneuver.location
         };
-        var distance =
         currentStep.distance = turf.distance(user, r, options.units);
         return currentStep;
     };
@@ -81,5 +80,5 @@ var navigation = module.exports = function(opts){
     return {
         shouldReRoute: shouldReRoute,
         findNextStep: findNextStep
-    }
-}
+    };
+};

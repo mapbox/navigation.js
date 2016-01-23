@@ -1,20 +1,18 @@
 require('mapbox.js');
+require('leaflet-hash');
 var mapboxDirectionRoute = require('../fixtures/route');
+L.mapbox.accessToken = 'pk.eyJ1IjoiYm9iYnlzdWQiLCJhIjoiTi16MElIUSJ9.Clrqck--7WmHeqqvtFdYig';
+var center = [39.9432, -75.1433];
 
 var navigation = require('../../')({
     units: 'miles',
     maxDistance: 0.1
 });
 
-var hash = require('leaflet-hash');
-var center = [39.9432, -75.1433];
-
-L.mapbox.accessToken = 'pk.eyJ1IjoiYm9iYnlzdWQiLCJhIjoiTi16MElIUSJ9.Clrqck--7WmHeqqvtFdYig';
-
 var map = L.mapbox.map('map', 'mapbox.streets')
     .setView(center, 14);
 
-var hash = L.hash(map);
+L.hash(map);
 
 var route = {
     'type': 'FeatureCollection',
@@ -28,7 +26,7 @@ var route = {
             }
         }
     ]
-}
+};
 
 var userLocation = {
     type: 'Feature',

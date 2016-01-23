@@ -1,6 +1,9 @@
 var test = require('tape');
 var route = require('./fixtures/route');
-var navigation = require('../');
+var navigation = require('../')({
+    units: 'miles',
+    maxDistance: 0.1
+});
 
 var user = {
     type: 'Feature',
@@ -28,13 +31,14 @@ test('userToRoute should not reRoute', function(t) {
         }
     };
     var reRoute = navigation.shouldReRoute(closeUser, route);
-    t.equal('boolean', typeof reRoute, 'is boolean');
+    t.equal(typeof reRoute, 'boolean', 'is boolean');
     t.equal(reRoute, false, 'Should not reRoute');
     t.end();
 });
 
 test('findNextStep', function(t) {
     var step = navigation.findNextStep(user, route);
-    t.equal(step, 1, 'first step');
+    t.equal(typeof step.distance, 'number');
+    t.equal(step.step, 1);
     t.end();
 });
