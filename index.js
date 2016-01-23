@@ -3,9 +3,9 @@ var turf = require('turf');
 var navigation = module.exports = function(opts){
     /**
     * Configuration options
-    * @param {object}` `units` - either `miles` or `km`. `maxDistance - max distance the user can be from the route
+    * @param {object} `units` - either `miles` or `km`. `maxDistance` - max distance the user can be from the route
     */
-    var defaults = {
+    var options = {
         units: opts.units || 'miles',
         maxDistance: opts.maxDistance || 0.1
     };
@@ -23,7 +23,7 @@ var navigation = module.exports = function(opts){
             geometry: route.routes[0].geometry
         };
         var closestPoint = turf.pointOnLine(r, user);
-        return turf.distance(user, closestPoint, defaults.units) > defaults.maxDistance ? true : false;
+        return turf.distance(user, closestPoint, options.units) > options.maxDistance ? true : false;
     };
 
     /**
@@ -52,7 +52,7 @@ var navigation = module.exports = function(opts){
                             coordinates: slicedSegment
                         }
                     };
-                    var distance = turf.distance(user, turf.pointOnLine(segmentRoute, user), defaults.units);
+                    var distance = turf.distance(user, turf.pointOnLine(segmentRoute, user), options.units);
                     if (distance < currentMax) {
                         currentMax = distance;
                         currentStep.step = i;
@@ -66,7 +66,7 @@ var navigation = module.exports = function(opts){
             geometry: route.routes[0].steps[currentStep.step].maneuver.location
         };
         var distance =
-        currentStep.distance = turf.distance(user, r, defaults.units);
+        currentStep.distance = turf.distance(user, r, options.units);
         return currentStep;
     };
 
