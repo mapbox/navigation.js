@@ -33,8 +33,8 @@ test('userToRoute should not reRoute', function(t) {
     t.end();
 });
 
-test('findClosestStep', function(t) {
-    var step = navigation.findClosestStepToUser(user, route);
+test('findNextStep', function(t) {
+    var step = navigation.findNextStep(user, route);
     t.equal(step, 1, 'first step');
     t.end();
 });

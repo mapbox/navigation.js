@@ -3,18 +3,16 @@
 demo: [mapbox.github.io/navigation.js/tests/debug](http://mapbox.github.io/navigation.js/tests/debug/#14/39.9432/-75.1433)
 
 Install
-```
-npm install navigation.js
-```
+
+`npm install navigation.js`
 
 Test
-```
-npm test
-```
+
+`npm test`
 
 ## API Usage
 
-### findClosestStepToUser
+### findNextStep
 
 Given a user location and route, calculates closest step to user
 
@@ -25,7 +23,7 @@ Given a user location and route, calculates closest step to user
 -   `user`  
 -   `route`  
 
-Returns **number** Step
+Returns **number** step
 
 ### shouldReRoute
 
