@@ -11,7 +11,11 @@ var navigation = require('navigation.js')({
     maxDistance: 0.1
 });
 
+// Given a users location, are they within 0.1 miles of any point on the route?
 navigation.shouldReRoute(userLocation, mapboxDirectionRoute); //true
+
+// Where is the user along the route?
+navigation.findNextStep(userLocation, mapboxDirectionRoute); // {distance: 0.5, step: 4}
 ```
 
 ## API Usage
