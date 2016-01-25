@@ -24,8 +24,6 @@ Given a user location and route, calculates closest step to user
 
 -   `GeoJSON` **object** point feature representing user location
 -   `Route` **object** from Mapbox directions API
--   `user`  
--   `route`  
 
 Returns **object** Containing `step` and `distance` to next step
 
@@ -45,7 +43,5 @@ Given a user location and route, calculates whether re-routing should occur
 
 -   `GeoJSON` **object** point feature representing user location
 -   `Route` **object** from Mapbox directions API
--   `user`  
--   `route`  
 
 Returns **boolean** 
