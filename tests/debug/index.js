@@ -6,7 +6,7 @@ var center = [39.9432, -75.1433];
 
 var navigation = require('../../')({
     units: 'miles',
-    maxDistance: 0.1
+    maxDistance: 0.02
 });
 
 var map = L.mapbox.map('map', 'mapbox.streets')
@@ -48,10 +48,10 @@ map.on('mousemove', function(e) {
     userLocation.geometry.coordinates[0] = e.latlng.lng;
     userLocation.geometry.coordinates[1] = e.latlng.lat;
 
-    var shouldReRoute = navigation.shouldReRoute(userLocation, mapboxDirectionRoute);
+    var shouldReRoute = navigation.shouldReRoute(userLocation, mapboxDirectionRoute.routes[0]);
     document.getElementById('reroute').innerHTML = shouldReRoute;
 
-    var nextStep = navigation.findNextStep(userLocation, mapboxDirectionRoute);
+    var nextStep = navigation.findNextStep(userLocation, mapboxDirectionRoute.routes[0]);
     document.getElementById('step').innerHTML = 'In ' + Math.round(nextStep.distance * 5280) + ' '+ mapboxDirectionRoute.routes[0].steps[nextStep.step].maneuver.instruction;
 });
 

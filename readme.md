@@ -27,11 +27,12 @@ Given a user location and route, calculates closest step to user
 **Parameters**
 
 -   `GeoJSON` **object** point feature representing user location
--   `Route` **object** from Mapbox directions API
+-   `Route` **object** from [Mapbox directions API](https://www.mapbox.com/developers/api/directions/).
+    The Mapbox directions API returns an object with up to 2 `routes` on the `route` key. `findNextStep` expects of these routes, either the first or second.
 
-Returns **object** Containing `step` and `distance` to next step
+Returns **object** Containing `step` and `distance` to next step in unites provide in options object
 
-### Options
+### options
 
 Configuration options
 
@@ -46,6 +47,7 @@ Given a user location and route, calculates whether re-routing should occur
 **Parameters**
 
 -   `GeoJSON` **object** point feature representing user location
--   `Route` **object** from Mapbox directions API
+-   `Route` **object** from [Mapbox directions API](https://www.mapbox.com/developers/api/directions/).
+    The Mapbox directions API returns an object with up to 2 `routes` on the `route` key. `shouldReRoute` expects of these routes, either the first or second.
 
-Returns **boolean** 
+Returns **boolean** should user be re-routed
