@@ -1,4 +1,5 @@
-var turf = require('turf');
+var turfPointOnLine = require('turf-point-on-line');
+var turfDistance = require('turf-distance');
 
 module.exports = function(opts) {
     /**
@@ -22,8 +23,8 @@ module.exports = function(opts) {
             properties: {},
             geometry: route.routes[0].geometry
         };
-        var closestPoint = turf.pointOnLine(r, user);
-        return turf.distance(user, closestPoint, options.units) > options.maxDistance ? true : false;
+        var closestPoint = turfPointOnLine(r, user);
+        return turfDistance(user, closestPoint, options.units) > options.maxDistance ? true : false;
     };
 
     /**
@@ -52,7 +53,7 @@ module.exports = function(opts) {
                             coordinates: slicedSegment
                         }
                     };
-                    var distance = turf.distance(user, turf.pointOnLine(segmentRoute, user), options.units);
+                    var distance = turfDistance(user, turfPointOnLine(segmentRoute, user), options.units);
                     if (distance < currentMax) {
                         currentMax = distance;
                         currentStep.step = i;
@@ -65,7 +66,7 @@ module.exports = function(opts) {
             properties: {},
             geometry: route.routes[0].steps[currentStep.step].maneuver.location
         };
-        currentStep.distance = turf.distance(user, r, options.units);
+        currentStep.distance = turfDistance(user, r, options.units);
         return currentStep;
     };
 
