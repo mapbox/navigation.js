@@ -4,7 +4,7 @@ var turfDistance = require('turf-distance');
 module.exports = function(opts) {
     /**
     * Configuration options
-    * @param {object} `units` - either `miles` or `km`. `maxDistance` - max distance the user can be from the route
+    * @param {object} `units` - either `miles` or `km`. `maxDistance` - max distance the user can be from the route.
     */
     var options = {
         units: opts.units || 'miles',
@@ -12,11 +12,11 @@ module.exports = function(opts) {
     };
 
     /**
-     * Given a user location and route, calculates whether re-routing should occur
-     * @param {object} GeoJSON point feature representing user location
-     * @param {object} Route from [Mapbox directions API](https://www.mapbox.com/developers/api/directions/).
+     * Given a user location and route, calculates whether re-routing should occur.
+     * @param {object} user point feature representing user location. Must be a valid GeoJSON object.
+     * @param {object} route from [Mapbox directions API](https://www.mapbox.com/developers/api/directions/).
      * The Mapbox directions API returns an object with up to 2 `routes` on the `route` key. `shouldReRoute` expects of these routes, either the first or second.
-     * @returns {boolean} should user be re-routed
+     * @returns {boolean} should user be re-routed.
      */
     function shouldReRoute(user, route) {
         var r = {
@@ -29,11 +29,11 @@ module.exports = function(opts) {
     };
 
     /**
-     * Given a user location and route, calculates closest step to user
-     * @param {object} GeoJSON point feature representing user location
-     * @param {object} Route from [Mapbox directions API](https://www.mapbox.com/developers/api/directions/).
+     * Given a user location and route, calculates closest step to user.
+     * @param {object} user point feature representing user location. Must be a valid GeoJSON object.
+     * @param {object} route from [Mapbox directions API](https://www.mapbox.com/developers/api/directions/).
      * The Mapbox directions API returns an object with up to 2 `routes` on the `route` key. `findNextStep` expects of these routes, either the first or second.
-     * @returns {object} Containing `step` and `distance` to next step in unites provide in options object
+     * @returns {object} Containing `step` and `distance` to next step in unites provide in options object.
      */
     function findNextStep(user, route) {
         var previousSlice = 0;

@@ -22,15 +22,15 @@ navigation.findNextStep(userLocation, mapboxDirectionRoute); // {distance: 0.5, 
 
 ### findNextStep
 
-Given a user location and route, calculates closest step to user
+Given a user location and route, calculates closest step to user.
 
 **Parameters**
 
--   `GeoJSON` **object** point feature representing user location
--   `Route` **object** from [Mapbox directions API](https://www.mapbox.com/developers/api/directions/).
+-   `user` **object** point feature representing user location. Must be a valid GeoJSON object.
+-   `route` **object** from [Mapbox directions API](https://www.mapbox.com/developers/api/directions/).
     The Mapbox directions API returns an object with up to 2 `routes` on the `route` key. `findNextStep` expects of these routes, either the first or second.
 
-Returns **object** Containing `step` and `distance` to next step in unites provide in options object
+Returns **object** Containing `step` and `distance` to next step in unites provide in options object.
 
 ### options
 
@@ -38,16 +38,16 @@ Configuration options
 
 **Parameters**
 
--   `object`  `units` - either `miles` or `km`. `maxDistance` - max distance the user can be from the route
+-   `object`  `units` - either `miles` or `km`. `maxDistance` - max distance the user can be from the route.
 
 ### shouldReRoute
 
-Given a user location and route, calculates whether re-routing should occur
+Given a user location and route, calculates whether re-routing should occur.
 
 **Parameters**
 
--   `GeoJSON` **object** point feature representing user location
--   `Route` **object** from [Mapbox directions API](https://www.mapbox.com/developers/api/directions/).
+-   `user` **object** point feature representing user location. Must be a valid GeoJSON object.
+-   `route` **object** from [Mapbox directions API](https://www.mapbox.com/developers/api/directions/).
     The Mapbox directions API returns an object with up to 2 `routes` on the `route` key. `shouldReRoute` expects of these routes, either the first or second.
 
-Returns **boolean** should user be re-routed
+Returns **boolean** should user be re-routed.
