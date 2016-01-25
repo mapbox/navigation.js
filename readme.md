@@ -1,7 +1,6 @@
 # navigation.js
 
 -   Demo: [mapbox.github.io/navigation.js/tests/debug](http://mapbox.github.io/navigation.js/tests/debug/#14/39.9432/-75.1433)
--   Install: `npm install navigation.js --save`
 -   Test: `npm test`
 
 Example:
