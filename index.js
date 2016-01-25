@@ -14,14 +14,15 @@ module.exports = function(opts) {
     /**
      * Given a user location and route, calculates whether re-routing should occur
      * @param {object} GeoJSON point feature representing user location
-     * @param {object} Route from Mapbox directions API
-     * @returns {boolean}
+     * @param {object} Route from [Mapbox directions API](https://www.mapbox.com/developers/api/directions/).
+     * The Mapbox directions API returns an object with up to 2 `routes` on the `route` key. `shouldReRoute` expects of these routes, either the first or second.
+     * @returns {boolean} should user be re-routed
      */
     function shouldReRoute(user, route) {
         var r = {
             type: 'Feature',
             properties: {},
-            geometry: route.routes[0].geometry
+            geometry: route.geometry
         };
         var closestPoint = turfPointOnLine(r, user);
         return turfDistance(user, closestPoint, options.units) > options.maxDistance ? true : false;
@@ -30,15 +31,16 @@ module.exports = function(opts) {
     /**
      * Given a user location and route, calculates closest step to user
      * @param {object} GeoJSON point feature representing user location
-     * @param {object} Route from Mapbox directions API
-     * @returns {object} Containing `step` and `distance` to next step
+     * @param {object} Route from [Mapbox directions API](https://www.mapbox.com/developers/api/directions/).
+     * The Mapbox directions API returns an object with up to 2 `routes` on the `route` key. `findNextStep` expects of these routes, either the first or second.
+     * @returns {object} Containing `step` and `distance` to next step in unites provide in options object
      */
     function findNextStep(user, route) {
         var previousSlice = 0;
         var currentMax = Infinity;
         var currentStep = {};
-        var routeCoordinates = route.routes[0].geometry.coordinates;
-        var stepCoordinates = route.routes[0].steps;
+        var routeCoordinates = route.geometry.coordinates;
+        var stepCoordinates = route.steps;
 
         for (var p = 0; p < routeCoordinates.length; p++) {
             for (var i = 0; i < stepCoordinates.length; i++) {;
@@ -64,7 +66,7 @@ module.exports = function(opts) {
         var r = {
             type: 'Feature',
             properties: {},
-            geometry: route.routes[0].steps[currentStep.step].maneuver.location
+            geometry: route.steps[currentStep.step].maneuver.location
         };
         currentStep.distance = turfDistance(user, r, options.units);
         return currentStep;
