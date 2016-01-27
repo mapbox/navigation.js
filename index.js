@@ -4,11 +4,12 @@ var turfDistance = require('turf-distance');
 module.exports = function(opts) {
     /**
     * Configuration options
-    * @param {object} `units` - either `miles` or `km`. `maxDistance` - max distance the user can be from the route.
+    * @param {object} `units` - either `miles` or `km`. `maxReRouteDistance` - max distance the user can be from the route. `maxSnapToLocation` - max distance to snap user to route.
     */
     var options = {
         units: opts.units || 'miles',
-        maxDistance: opts.maxDistance || 0.1
+        maxReRouteDistance: opts.maxReRouteDistance || 0.03,
+        maxSnapToLocation: opts.maxSnapToLocation || 0.01
     };
 
     /**
@@ -25,7 +26,7 @@ module.exports = function(opts) {
             geometry: route.geometry
         };
         var closestPoint = turfPointOnLine(r, user);
-        return turfDistance(user, closestPoint, options.units) > options.maxDistance ? true : false;
+        return turfDistance(user, closestPoint, options.units) > options.maxReRouteDistance ? true : false;
     };
 
     /**
@@ -33,7 +34,7 @@ module.exports = function(opts) {
      * @param {object} user point feature representing user location. Must be a valid GeoJSON object.
      * @param {object} route from [Mapbox directions API](https://www.mapbox.com/developers/api/directions/).
      * The Mapbox directions API returns an object with up to 2 `routes` on the `route` key. `findNextStep` expects of these routes, either the first or second.
-     * @returns {object} Containing `step` and `distance` to next step in unites provide in options object.
+     * @returns {object} Containing 3 keys: `step`, `distance`, `snapToLocation`. `distance` is distance to end of step, `snapToLocation` is location along route which is closest to the user.
      */
     function findNextStep(user, route) {
         var previousSlice = 0;
@@ -55,10 +56,12 @@ module.exports = function(opts) {
                             coordinates: slicedSegment
                         }
                     };
-                    var distance = turfDistance(user, turfPointOnLine(segmentRoute, user), options.units);
+                    var closestPoint = turfPointOnLine(segmentRoute, user);
+                    var distance = turfDistance(user, closestPoint, options.units);
                     if (distance < currentMax) {
                         currentMax = distance;
                         currentStep.step = i;
+                        currentStep.snapToLocation = distance < opts.maxSnapToLocation ? closestPoint : user;
                     }
                 }
             }

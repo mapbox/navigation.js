@@ -2,7 +2,8 @@ var test = require('tape');
 var route = require('./fixtures/route');
 var navigation = require('../')({
     units: 'miles',
-    maxDistance: 0.1
+    maxReRouteDistance: 0.1,
+    maxSnapToLocation: 0.1
 });
 
 var user = {
@@ -39,6 +40,11 @@ test('userToRoute should not reRoute', function(t) {
 test('findNextStep', function(t) {
     var step = navigation.findNextStep(user, route.routes[0]);
     t.equal(typeof step.distance, 'number');
+    t.equal(typeof step.snapToLocation, 'object');
+    t.equal(step.snapToLocation.type, 'Feature');
+    t.equal(step.snapToLocation.geometry.type, 'Point');
+    t.equal(step.snapToLocation.geometry.coordinates[0], -122.40658342838287);
+    t.equal(step.snapToLocation.geometry.coordinates[1], 37.79485564380556);
     t.equal(step.step, 1);
     t.end();
 });
