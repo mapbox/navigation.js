@@ -1,15 +1,16 @@
 # navigation.js
 
-* Demo: [mapbox.github.io/navigation.js/tests/debug](http://mapbox.github.io/navigation.js/tests/debug/#14/39.9432/-75.1433)
-* Install: `npm install navigation.js --save`
-* Test: `npm test`
+-   Demo: [mapbox.github.io/navigation.js/tests/debug](http://mapbox.github.io/navigation.js/tests/debug/#14/39.9432/-75.1433)
+-   Install: `npm install navigation.js --save`
+-   Test: `npm test`
 
 Example:
 
 ```js
 var navigation = require('navigation.js')({
     units: 'miles',
-    maxDistance: 0.1
+    maxReRouteDistance: 0.03,
+    maxSnapToLocation: 0.01
 });
 
 // Given a users location, are they within 0.1 miles of any point on the route?
@@ -31,7 +32,7 @@ Given a user location and route, calculates closest step to user.
 -   `route` **object** from [Mapbox directions API](https://www.mapbox.com/developers/api/directions/).
     The Mapbox directions API returns an object with up to 2 `routes` on the `route` key. `findNextStep` expects of these routes, either the first or second.
 
-Returns **object** Containing `step` and `distance` to next step in unites provide in options object.
+Returns **object** Containing 3 keys: `step`, `distance`, `snapToLocation`. `distance` is distance to end of step, `snapToLocation` is location along route which is closest to the user.
 
 ### options
 
@@ -39,7 +40,7 @@ Configuration options
 
 **Parameters**
 
--   `object`  `units` - either `miles` or `km`. `maxDistance` - max distance the user can be from the route.
+-   `object`  `units` - either `miles` or `km`. `maxReRouteDistance` - max distance the user can be from the route. `maxSnapToLocation` - max distance to snap user to route.
 
 ### shouldReRoute
 

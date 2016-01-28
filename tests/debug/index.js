@@ -6,7 +6,8 @@ var center = [39.9432, -75.1433];
 
 var navigation = require('../../')({
     units: 'miles',
-    maxDistance: 0.02
+    maxReRouteDistance: 0.03,
+    maxSnapToLocation: 0.01
 });
 
 var map = L.mapbox.map('map', 'mapbox.streets')
@@ -44,7 +45,6 @@ L.geoJson(route).addTo(map);
 var marker = L.marker(center).addTo(map);
 
 map.on('mousemove', function(e) {
-    marker.setLatLng(e.latlng);
     userLocation.geometry.coordinates[0] = e.latlng.lng;
     userLocation.geometry.coordinates[1] = e.latlng.lat;
 
@@ -52,6 +52,7 @@ map.on('mousemove', function(e) {
     document.getElementById('reroute').innerHTML = shouldReRoute;
 
     var nextStep = navigation.findNextStep(userLocation, mapboxDirectionRoute.routes[0]);
+    marker.setLatLng([nextStep.snapToLocation.geometry.coordinates[1], nextStep.snapToLocation.geometry.coordinates[0]]);
     document.getElementById('step').innerHTML = 'In ' + Math.round(nextStep.distance * 5280) + ' '+ mapboxDirectionRoute.routes[0].steps[nextStep.step].maneuver.instruction;
 });
 
