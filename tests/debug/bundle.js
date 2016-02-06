@@ -15610,8 +15610,10 @@ map.on('mousemove', function(e) {
 
     if (nextStep.alertUser) {
         stepText.className = 'flash';
+        stepText.style.color = 'red';
     } else {
         stepText.className = '';
+        stepText.style.color = 'black';
     }
 
     marker.setLatLng([nextStep.snapToLocation.geometry.coordinates[1], nextStep.snapToLocation.geometry.coordinates[0]]);

@@ -37,14 +37,42 @@ test('userToRoute should not reRoute', function(t) {
     t.end();
 });
 
-test('findNextStep', function(t) {
-    var step = navigation.findNextStep(user, route.routes[0]);
+test('findNextStep - should not alert', function(t) {
+    var userTwo = {
+        'type': 'Feature',
+        'geometry': {
+            'type': 'Point',
+            'coordinates': [-75.16444444656372, 39.94649630539111]
+        }
+    };
+    var step = navigation.findNextStep(userTwo, route.routes[0]);
+    t.equal(step.alertUser, false);
     t.equal(typeof step.distance, 'number');
     t.equal(typeof step.snapToLocation, 'object');
     t.equal(step.snapToLocation.type, 'Feature');
     t.equal(step.snapToLocation.geometry.type, 'Point');
-    t.equal(step.snapToLocation.geometry.coordinates[0], -122.40658342838287);
-    t.equal(step.snapToLocation.geometry.coordinates[1], 37.79485564380556);
-    t.equal(step.step, 1);
+    t.equal(step.snapToLocation.geometry.coordinates[0], -75.16480297931626);
+    t.equal(step.snapToLocation.geometry.coordinates[1], 39.94650897049405);
+    t.equal(step.step, 6);
+    t.end();
+});
+
+test('findNextStep - should alert', function(t) {
+    var userTwo = {
+        'type': 'Feature',
+        'geometry': {
+            'type': 'Point',
+            'coordinates': [-75.16403675079346, 39.950131747894396]
+        }
+    };
+    var step = navigation.findNextStep(userTwo, route.routes[0]);
+    t.equal(step.alertUser, true);
+    t.equal(typeof step.distance, 'number');
+    t.equal(typeof step.snapToLocation, 'object');
+    t.equal(step.snapToLocation.type, 'Feature');
+    t.equal(step.snapToLocation.geometry.type, 'Point');
+    t.equal(step.snapToLocation.geometry.coordinates[0], -75.16401678807557);
+    t.equal(step.snapToLocation.geometry.coordinates[1], 39.95012748637537);
+    t.equal(step.step, 6);
     t.end();
 });
