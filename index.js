@@ -1,5 +1,7 @@
 var turfPointOnLine = require('turf-point-on-line');
 var turfDistance = require('turf-distance');
+var turfLineDistance = require('turf-line-distance');
+var turfLineSlice = require('turf-line-slice');
 
 module.exports = function(opts) {
     /**
@@ -9,7 +11,8 @@ module.exports = function(opts) {
     var options = {
         units: opts.units || 'miles',
         maxReRouteDistance: opts.maxReRouteDistance || 0.03,
-        maxSnapToLocation: opts.maxSnapToLocation || 0.01
+        maxSnapToLocation: opts.maxSnapToLocation || 0.01,
+        warnUserTime: opts.warnUserTime || 30
     };
 
     /**
@@ -22,7 +25,6 @@ module.exports = function(opts) {
     function shouldReRoute(user, route) {
         var r = {
             type: 'Feature',
-            properties: {},
             geometry: route.geometry
         };
         var closestPoint = turfPointOnLine(r, user);
@@ -43,24 +45,40 @@ module.exports = function(opts) {
         var routeCoordinates = route.geometry.coordinates;
         var stepCoordinates = route.steps;
 
-        for (var p = 0; p < routeCoordinates.length; p++) {
-            for (var i = 0; i < stepCoordinates.length; i++) {;
+        for (var i = 0; i < stepCoordinates.length; i++) {
+            for (var p = 0; p < routeCoordinates.length; p++) {
                 if (arraysEqual(stepCoordinates[i].maneuver.location.coordinates, routeCoordinates[p])) {
                     var slicedSegment = routeCoordinates.slice(previousSlice, p + 1);
                     previousSlice = p;
                     var segmentRoute = {
                         type: 'Feature',
-                        properties: {},
                         geometry: {
                             type: 'LineString',
                             coordinates: slicedSegment
                         }
                     };
+
                     var closestPoint = turfPointOnLine(segmentRoute, user);
                     var distance = turfDistance(user, closestPoint, options.units);
+
                     if (distance < currentMax) {
+                        var stop = {
+                            type: 'Feature',
+                            geometry: {
+                                type: 'Point',
+                                coordinates: slicedSegment[slicedSegment.length - 1]
+                            }
+                        };
+
+                        var userDistanceToEndStep = turfLineDistance(turfLineSlice(user, stop, segmentRoute), options.units);
+                        var segmentDistance = turfLineDistance(segmentRoute, options.units);
+                        var completePercent = userDistanceToEndStep / segmentDistance;
+                        var warnPercent = stepCoordinates[i - 1].duration > options.warnUserTime ? 1 - ((stepCoordinates[i - 1].duration - 30) / stepCoordinates[i - 1].duration) : 0;
+
                         currentMax = distance;
                         currentStep.step = i;
+                        currentStep.percentComplete = completePercent;
+                        currentStep.alertUser = completePercent < warnPercent ? true : false;
                         currentStep.snapToLocation = distance < opts.maxSnapToLocation ? closestPoint : user;
                     }
                 }
