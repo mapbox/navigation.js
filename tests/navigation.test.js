@@ -40,6 +40,8 @@ test('userToRoute should not reRoute', function(t) {
 test('findNextStep', function(t) {
     var step = navigation.findNextStep(user, route.routes[0]);
     t.equal(typeof step.distance, 'number');
+    t.equal(step.distance, 0);
+    t.equal(step.absoluteDistance, 2516.0350162705317);
     t.equal(typeof step.snapToLocation, 'object');
     t.equal(step.snapToLocation.type, 'Feature');
     t.equal(step.snapToLocation.geometry.type, 'Point');
