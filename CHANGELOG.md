@@ -1,3 +1,8 @@
+# v0.2.0
+
+* `distance` is no line distance
+* Adds `absoluteDistance` which is the users absolute distance to the end of the step
+
 # v0.1.0
 
 * `maxDistance` changed to `maxReRouteDistance`
