@@ -32,7 +32,7 @@ Given a user location and route, calculates closest step to user.
 -   `route` **object** from [Mapbox directions API](https://www.mapbox.com/developers/api/directions/).
     The Mapbox directions API returns an object with up to 2 `routes` on the `route` key. `findNextStep` expects of these routes, either the first or second.
 
-Returns **object** Containing 3 keys: `step`, `distance`, `snapToLocation`. `distance` is distance to end of step, `snapToLocation` is location along route which is closest to the user.
+Returns **object** Containing 3 keys: `step`, `distance`, `snapToLocation`. `distance` is the line distance to end of step, `absoluteDistance` is the users absolute distance to the end of the route `snapToLocation` is location along route which is closest to the user.
 
 ### options
 

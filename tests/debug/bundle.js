@@ -3,7 +3,6 @@ var turfPointOnLine = require('turf-point-on-line');
 var turfDistance = require('turf-distance');
 var turfLineDistance = require('turf-line-distance');
 var turfLineSlice = require('turf-line-slice');
-
 module.exports = function(opts) {
     /**
     * Configuration options
@@ -26,6 +25,7 @@ module.exports = function(opts) {
     function shouldReRoute(user, route) {
         var r = {
             type: 'Feature',
+            properties: {},
             geometry: route.geometry
         };
         var closestPoint = turfPointOnLine(r, user);
@@ -37,7 +37,7 @@ module.exports = function(opts) {
      * @param {object} user point feature representing user location. Must be a valid GeoJSON object.
      * @param {object} route from [Mapbox directions API](https://www.mapbox.com/developers/api/directions/).
      * The Mapbox directions API returns an object with up to 2 `routes` on the `route` key. `findNextStep` expects of these routes, either the first or second.
-     * @returns {object} Containing 3 keys: `step`, `distance`, `snapToLocation`. `distance` is distance to end of step, `snapToLocation` is location along route which is closest to the user.
+     * @returns {object} Containing 3 keys: `step`, `distance`, `snapToLocation`. `distance` is the line distance to end of step, `absoluteDistance` is the users absolute distance to the end of the route `snapToLocation` is location along route which is closest to the user.
      */
     function findNextStep(user, route) {
         var previousSlice = 0;
@@ -46,51 +46,42 @@ module.exports = function(opts) {
         var routeCoordinates = route.geometry.coordinates;
         var stepCoordinates = route.steps;
 
-        for (var i = 0; i < stepCoordinates.length; i++) {
-            for (var p = 0; p < routeCoordinates.length; p++) {
+        for (var p = 0; p < routeCoordinates.length; p++) {
+            for (var i = 0; i < stepCoordinates.length; i++) {;
                 if (arraysEqual(stepCoordinates[i].maneuver.location.coordinates, routeCoordinates[p])) {
                     var slicedSegment = routeCoordinates.slice(previousSlice, p + 1);
                     previousSlice = p;
                     var segmentRoute = {
                         type: 'Feature',
+                        properties: {},
                         geometry: {
                             type: 'LineString',
                             coordinates: slicedSegment
                         }
                     };
-
                     var closestPoint = turfPointOnLine(segmentRoute, user);
                     var distance = turfDistance(user, closestPoint, options.units);
-
                     if (distance < currentMax) {
-                        var stop = {
-                            type: 'Feature',
-                            geometry: {
-                                type: 'Point',
-                                coordinates: slicedSegment[slicedSegment.length - 1]
-                            }
-                        };
 
-                        var userDistanceToEndStep = turfLineDistance(turfLineSlice(user, stop, segmentRoute), options.units);
+                        currentMax = distance;
+
+                        var segmentEndPoint = { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: slicedSegment[slicedSegment.length - 1] }};
+                        var segmentSlicedToUser = turfLineSlice(user, segmentEndPoint, segmentRoute);
+
                         var segmentDistance = turfLineDistance(segmentRoute, options.units);
+                        var userDistanceToEndStep = turfLineDistance(segmentSlicedToUser, options.units);
                         var completePercent = userDistanceToEndStep / segmentDistance;
                         var warnPercent = stepCoordinates[i - 1].duration > options.warnUserTime ? 1 - ((stepCoordinates[i - 1].duration - 30) / stepCoordinates[i - 1].duration) : 0;
 
-                        currentMax = distance;
+                        currentStep.distance = userDistanceToEndStep;
+                        currentStep.absoluteDistance = turfDistance(user, segmentEndPoint, options.units);
                         currentStep.step = i;
-                        currentStep.percentComplete = completePercent;
                         currentStep.alertUser = completePercent < warnPercent ? true : false;
                         currentStep.snapToLocation = distance < opts.maxSnapToLocation ? closestPoint : user;
                     }
                 }
             }
         }
-        var r = {
-            type: 'Feature',
-            properties: {},
-            geometry: route.steps[currentStep.step].maneuver.location
-        };
-        currentStep.distance = turfDistance(user, r, options.units);
         return currentStep;
     };
 
@@ -15553,60 +15544,94 @@ arguments[4][36][0].apply(exports,arguments)
 },{"dup":36}],47:[function(require,module,exports){
 require('mapbox.js');
 require('leaflet-hash');
-var mapboxDirectionRoute = require('../fixtures/route');
+var activeTest = 0;
 L.mapbox.accessToken = 'pk.eyJ1IjoiYm9iYnlzdWQiLCJhIjoiTi16MElIUSJ9.Clrqck--7WmHeqqvtFdYig';
-var center = [39.9432, -75.1433];
+var userLocation = { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [] }};
+var places = document.getElementById('places');
+var stepText = document.getElementById('step');
 
+// Routes to test
+var downtown = require('../fixtures/route');
+var loop = require('../fixtures/routeSF');
+var highway = require('../fixtures/highway');
+
+// Setup navigation.js
 var navigation = require('../../')({
     units: 'miles',
     maxReRouteDistance: 0.03,
-    maxSnapToLocation: 0.01,
-    warnUserTime: 30
+    maxSnapToLocation: 0.01
 });
 
-var map = L.mapbox.map('map', 'mapbox.streets')
-    .setView(center, 14);
+var testCases = [
+    {
+        center: [39.9432, -75.1433],
+        zoom: 14,
+        route: downtown,
+        name: 'City, downtown'
+    }, {
+        center: [37.6953, -122.4743],
+        zoom: 15,
+        route: loop,
+        name: 'Route passes over itself'
+    }, {
+        center: [37.7655, -122.4083],
+        zoom: 15,
+        route: highway,
+        name: 'Highway'
+    }
+];
 
+var map = L.mapbox.map('map', 'mapbox.streets').setView([39.9432, -75.1433], 14);
+var marker = L.marker([0, 0]).addTo(map);
 L.hash(map);
 
-var route = {
-    'type': 'FeatureCollection',
-    'features': [
-        {
-            'type': 'Feature',
-            'properties': {},
-            'geometry': {
-                'type': 'LineString',
-                'coordinates': []
+for (var i = 0; i < testCases.length; i++) {
+    var div = document.createElement('div');
+    div.innerHTML = '<a href=# data-route=' + i + ' data-name=' + testCases[i].name + ' data-lng=' + testCases[i].center[1] + ' data-lat=' + testCases[i].center[0] + ' data-zoom=' + testCases[i].zoom + '>' + testCases[i].name + '</a>';
+    places.appendChild(div);
+    div.addEventListener('click', function(e) {
+        map.setView([e.target.dataset.lat, e.target.dataset.lng], e.target.dataset.zoom);
+        activeTest = e.target.dataset.route;
+    });
+
+    L.geoJson({
+        'type': 'FeatureCollection',
+        'features': [
+            {
+                'type': 'Feature',
+                'geometry': {
+                    'type': 'LineString',
+                    'coordinates': testCases[i].route.routes[0].geometry.coordinates
+                }
             }
-        }
-    ]
+        ]
+    }).addTo(map);
+
+    for (var p = 0; p < testCases[i].route.routes[0].steps.length; p++) {
+        var maneuver = testCases[i].route.routes[0].steps[p].maneuver;
+
+        L.circle([maneuver.location.coordinates[1], maneuver.location.coordinates[0]], 30, {
+            color: 'black',
+            weight: 1,
+            fillColor: 'black'
+        })
+            .bindPopup(maneuver.instruction + '. Step: ' + i)
+            .addTo(map);
+    };
+
 };
-
-var userLocation = {
-    type: 'Feature',
-    properties: {},
-    geometry: {
-        type: 'Point',
-        coordinates: []
-    }
-};
-
-route.features[0].geometry.coordinates = mapboxDirectionRoute.routes[0].geometry.coordinates;
-
-L.geoJson(route).addTo(map);
-
-var marker = L.marker(center).addTo(map);
 
 map.on('mousemove', function(e) {
     userLocation.geometry.coordinates[0] = e.latlng.lng;
     userLocation.geometry.coordinates[1] = e.latlng.lat;
 
-    var shouldReRoute = navigation.shouldReRoute(userLocation, mapboxDirectionRoute.routes[0]);
+    var shouldReRoute = navigation.shouldReRoute(userLocation, testCases[activeTest].route.routes[0]);
     document.getElementById('reroute').innerHTML = shouldReRoute;
 
-    var nextStep = navigation.findNextStep(userLocation, mapboxDirectionRoute.routes[0]);
-    var stepText = document.getElementById('step');
+    var nextStep = navigation.findNextStep(userLocation, testCases[activeTest].route.routes[0]);
+    marker.setLatLng([nextStep.snapToLocation.geometry.coordinates[1], nextStep.snapToLocation.geometry.coordinates[0]]);
+
+    stepText.innerHTML = 'In ' + Math.round(nextStep.distance * 5280) + ' '+ testCases[activeTest].route.routes[0].steps[nextStep.step].maneuver.instruction;
 
     if (nextStep.alertUser) {
         stepText.className = 'flash';
@@ -15615,25 +15640,15 @@ map.on('mousemove', function(e) {
         stepText.className = '';
         stepText.style.color = 'black';
     }
-
-    marker.setLatLng([nextStep.snapToLocation.geometry.coordinates[1], nextStep.snapToLocation.geometry.coordinates[0]]);
-    stepText.innerHTML = 'In ' + Math.round(nextStep.distance * 5280) + ' '+ mapboxDirectionRoute.routes[0].steps[nextStep.step].maneuver.instruction;
 });
 
+},{"../../":1,"../fixtures/highway":48,"../fixtures/route":49,"../fixtures/routeSF":50,"leaflet-hash":2,"mapbox.js":19}],48:[function(require,module,exports){
+module.exports={"origin":{"type":"Feature","geometry":{"type":"Point","coordinates":[-122.4136734008789,37.77958297729492]},"properties":{"name":"Market Street"}},"destination":{"type":"Feature","geometry":{"type":"Point","coordinates":[-122.38433837890625,37.615928649902344]},"properties":{"name":""}},"waypoints":[],"routes":[{"distance":21534,"duration":1169,"summary":"James Lick Freeway (US 101) - Bayshore Freeway (US 101)","geometry":{"type":"LineString","coordinates":[[-122.413674,37.779583],[-122.413742,37.779529],[-122.414763,37.77872],[-122.41557,37.778083],[-122.415948,37.777784],[-122.416401,37.777723],[-122.416945,37.777652],[-122.417475,37.777584],[-122.417586,37.777568],[-122.418049,37.777505],[-122.417916,37.776859],[-122.417889,37.776816],[-122.417839,37.77677],[-122.417784,37.776729],[-122.417677,37.776665],[-122.417533,37.776537],[-122.417305,37.776391],[-122.416923,37.776083],[-122.416526,37.775763],[-122.416447,37.775699],[-122.415923,37.775277],[-122.415384,37.774852],[-122.414921,37.774484],[-122.414368,37.774043],[-122.413763,37.77356],[-122.412834,37.77282],[-122.411897,37.772073],[-122.411287,37.771586],[-122.410904,37.771281],[-122.409766,37.770337],[-122.409545,37.770318],[-122.409263,37.770267],[-122.409117,37.770227],[-122.408964,37.770174],[-122.408818,37.770114],[-122.408683,37.770048],[-122.40855,37.769972],[-122.408167,37.769722],[-122.40761,37.769362],[-122.407329,37.769169],[-122.406751,37.768741],[-122.406048,37.768227],[-122.40588,37.768083],[-122.405786,37.76799],[-122.4057,37.767878],[-122.405631,37.767764],[-122.405566,37.767637],[-122.405536,37.767554],[-122.405509,37.76747],[-122.405467,37.767315],[-122.405472,37.76726],[-122.405393,37.766669],[-122.40535,37.766448],[-122.405244,37.766047],[-122.405116,37.764722],[-122.405102,37.764533],[-122.405101,37.764373],[-122.405104,37.764169],[-122.40512,37.763976],[-122.405147,37.763782],[-122.405184,37.763594],[-122.405232,37.763406],[-122.405294,37.763212],[-122.405364,37.763035],[-122.405447,37.762851],[-122.40554,37.762677],[-122.405643,37.762501],[-122.405747,37.762329],[-122.40605,37.76185],[-122.406137,37.7617],[-122.406224,37.761536],[-122.406295,37.761383],[-122.406357,37.761222],[-122.406405,37.761058],[-122.406443,37.760898],[-122.406469,37.760737],[-122.406484,37.760575],[-122.406486,37.760406],[-122.406474,37.760239],[-122.406448,37.760069],[-122.406407,37.75989],[-122.406355,37.759714],[-122.406282,37.759533],[-122.406201,37.759369],[-122.406097,37.759196],[-122.405987,37.759038],[-122.405855,37.758872],[-122.405704,37.758709],[-122.405546,37.758564],[-122.405368,37.758417],[-122.405191,37.75828],[-122.405008,37.758147],[-122.404656,37.757897],[-122.404498,37.757781],[-122.40433,37.757651],[-122.404188,37.757532],[-122.404053,37.757407],[-122.403936,37.757281],[-122.403823,37.757152],[-122.403719,37.757012],[-122.403625,37.756868],[-122.403533,37.756696],[-122.403458,37.75653],[-122.403398,37.756365],[-122.40335,37.756189],[-122.403313,37.756008],[-122.403283,37.755814],[-122.40326,37.755619],[-122.403241,37.755431],[-122.40304,37.753325],[-122.403019,37.753069],[-122.403004,37.752804],[-122.402998,37.752553],[-122.403014,37.75231],[-122.403039,37.752048],[-122.403078,37.751798],[-122.403132,37.751529],[-122.403188,37.751309],[-122.403253,37.751093],[-122.40365,37.749828],[-122.404155,37.74822],[-122.404557,37.746941],[-122.405045,37.745389],[-122.405128,37.745139],[-122.405234,37.744874],[-122.405346,37.744631],[-122.405476,37.744401],[-122.405625,37.74416],[-122.405789,37.743935],[-122.405967,37.743707],[-122.40684,37.742669],[-122.406941,37.742544],[-122.407033,37.742431],[-122.407206,37.742192],[-122.407367,37.741944],[-122.407512,37.7417],[-122.40764,37.741452],[-122.407758,37.741175],[-122.407845,37.740938],[-122.407932,37.740647],[-122.408002,37.740387],[-122.408058,37.740108],[-122.408101,37.739829],[-122.408142,37.739469],[-122.408156,37.739212],[-122.408152,37.738949],[-122.40814,37.738683],[-122.408117,37.738416],[-122.408085,37.738149],[-122.408041,37.73792],[-122.40798,37.737662],[-122.407908,37.737395],[-122.407822,37.737131],[-122.407731,37.736884],[-122.40763,37.73665],[-122.407526,37.736425],[-122.407405,37.736186],[-122.407255,37.735923],[-122.407154,37.735735],[-122.406926,37.735348],[-122.4064,37.734437],[-122.406148,37.734013],[-122.405632,37.733146],[-122.405197,37.732443],[-122.405023,37.732142],[-122.404853,37.731833],[-122.40465,37.731452],[-122.404499,37.731154],[-122.40433,37.730814],[-122.404088,37.73031],[-122.403995,37.730114],[-122.4038,37.729685],[-122.403631,37.729304],[-122.403483,37.728922],[-122.403032,37.727876],[-122.402966,37.727719],[-122.402482,37.726603],[-122.402029,37.72542],[-122.4017,37.724556],[-122.401474,37.723983],[-122.401301,37.723563],[-122.400688,37.722088],[-122.400499,37.721584],[-122.400278,37.720955],[-122.400181,37.720679],[-122.40009,37.720391],[-122.399823,37.719439],[-122.399635,37.718731],[-122.399579,37.718529],[-122.399191,37.717134],[-122.399123,37.716896],[-122.39904,37.716651],[-122.398941,37.716395],[-122.398829,37.716155],[-122.398652,37.7158],[-122.398495,37.715538],[-122.398345,37.7153],[-122.398172,37.715059],[-122.397974,37.714804],[-122.397767,37.714552],[-122.397011,37.71365],[-122.396842,37.713423],[-122.396692,37.713201],[-122.396547,37.712975],[-122.396407,37.712755],[-122.396281,37.712533],[-122.396171,37.71232],[-122.396055,37.712065],[-122.395963,37.711836],[-122.395875,37.711584],[-122.395801,37.711342],[-122.395742,37.711103],[-122.395656,37.710736],[-122.395539,37.710236],[-122.39538,37.709515],[-122.395259,37.70896],[-122.395144,37.708436],[-122.395121,37.708327],[-122.394905,37.707336],[-122.394574,37.705726],[-122.393825,37.702429],[-122.391826,37.693636],[-122.3906,37.688244],[-122.389184,37.682016],[-122.389016,37.681329],[-122.388798,37.680441],[-122.388695,37.680029],[-122.388609,37.679628],[-122.388543,37.679266],[-122.388491,37.678885],[-122.388474,37.6786],[-122.388465,37.678281],[-122.388474,37.677975],[-122.388491,37.677649],[-122.388534,37.677316],[-122.388598,37.676987],[-122.388674,37.676673],[-122.388754,37.676385],[-122.38886,37.676084],[-122.389002,37.675733],[-122.389153,37.6754],[-122.38928,37.675117],[-122.389424,37.67481],[-122.389564,37.674519],[-122.38972,37.674209],[-122.38987,37.673917],[-122.389907,37.673846],[-122.39025,37.673252],[-122.390451,37.672919],[-122.390598,37.672685],[-122.390746,37.672454],[-122.390902,37.672224],[-122.391059,37.672],[-122.391221,37.671777],[-122.391393,37.671546],[-122.391558,37.671333],[-122.391736,37.67111],[-122.391911,37.670894],[-122.392094,37.670672],[-122.392275,37.670462],[-122.392465,37.670245],[-122.392656,37.670035],[-122.392891,37.669787],[-122.395051,37.667538],[-122.395848,37.666708],[-122.396358,37.666178],[-122.396555,37.665974],[-122.396752,37.665775],[-122.396954,37.665582],[-122.397171,37.66538],[-122.39741,37.665162],[-122.397622,37.664979],[-122.397847,37.664791],[-122.398088,37.664598],[-122.398313,37.664426],[-122.398546,37.664249],[-122.398791,37.664076],[-122.399041,37.663907],[-122.399303,37.663733],[-122.399553,37.663568],[-122.39982,37.663397],[-122.402638,37.661591],[-122.402894,37.661424],[-122.403164,37.661236],[-122.403409,37.661052],[-122.403657,37.660855],[-122.403926,37.660622],[-122.404153,37.660405],[-122.404371,37.660176],[-122.404592,37.659923],[-122.404772,37.659701],[-122.404939,37.659468],[-122.405084,37.65925],[-122.40523,37.659008],[-122.405362,37.658768],[-122.405489,37.65852],[-122.40573,37.65805],[-122.406365,37.656812],[-122.406491,37.656556],[-122.406607,37.656304],[-122.40671,37.656042],[-122.406804,37.655776],[-122.406883,37.655513],[-122.406956,37.655234],[-122.407008,37.654992],[-122.407054,37.654729],[-122.407087,37.654486],[-122.407116,37.654227],[-122.407132,37.653981],[-122.407141,37.653728],[-122.407141,37.653452],[-122.407126,37.653191],[-122.407105,37.652919],[-122.407013,37.651851],[-122.406978,37.651444],[-122.406863,37.650127],[-122.406836,37.649813],[-122.406758,37.648912],[-122.40673,37.648583],[-122.406418,37.644569],[-122.40621,37.64222],[-122.406182,37.64199],[-122.406118,37.641571],[-122.406048,37.641133],[-122.405957,37.640716],[-122.40583,37.640242],[-122.405697,37.63981],[-122.405579,37.639494],[-122.405426,37.639116],[-122.405241,37.638696],[-122.405024,37.638239],[-122.404855,37.63773],[-122.404781,37.637526],[-122.404518,37.636859],[-122.404438,37.636654],[-122.404272,37.636192],[-122.404203,37.636007],[-122.40414,37.635792],[-122.404093,37.635604],[-122.404046,37.635406],[-122.404005,37.63519],[-122.403855,37.634425],[-122.403447,37.632109],[-122.40334,37.631506],[-122.403211,37.630682],[-122.402991,37.628999],[-122.402921,37.628553],[-122.402851,37.628137],[-122.402776,37.627742],[-122.402589,37.626854],[-122.402519,37.626561],[-122.402417,37.626255],[-122.402267,37.62589],[-122.401961,37.625167],[-122.401681,37.62449],[-122.401619,37.62439],[-122.401038,37.622847],[-122.400657,37.621789],[-122.400475,37.621246],[-122.400303,37.620697],[-122.399983,37.6195],[-122.399911,37.619244],[-122.399792,37.618859],[-122.399643,37.6184],[-122.399551,37.618141],[-122.398804,37.616122],[-122.398657,37.61592],[-122.39848,37.61552],[-122.398314,37.615159],[-122.398173,37.614836],[-122.398045,37.61458],[-122.397975,37.614456],[-122.397916,37.614367],[-122.397837,37.614269],[-122.397736,37.614175],[-122.397617,37.614082],[-122.397501,37.614008],[-122.397352,37.613933],[-122.397196,37.613876],[-122.397031,37.613829],[-122.396833,37.613798],[-122.396697,37.613785],[-122.396515,37.613789],[-122.396322,37.613808],[-122.396074,37.613838],[-122.395755,37.613892],[-122.395304,37.613975],[-122.394909,37.614049],[-122.394523,37.614123],[-122.394282,37.614171],[-122.39405,37.61422],[-122.393819,37.614275],[-122.393574,37.614343],[-122.393328,37.614416],[-122.392928,37.61453],[-122.39266,37.614603],[-122.392422,37.614657],[-122.392023,37.614744],[-122.391763,37.614803],[-122.3915,37.614854],[-122.391176,37.614904],[-122.390679,37.614994],[-122.390482,37.615029],[-122.390272,37.615073],[-122.389623,37.615199],[-122.389323,37.615274],[-122.389011,37.615358],[-122.388621,37.615451],[-122.388523,37.615465],[-122.388426,37.615473],[-122.388153,37.61546],[-122.387906,37.615426],[-122.387697,37.615384],[-122.387503,37.615324],[-122.387314,37.61524],[-122.386774,37.615002],[-122.386387,37.614887],[-122.386121,37.614839],[-122.38583,37.614832],[-122.385529,37.614873],[-122.385254,37.614968],[-122.38504,37.615084],[-122.384894,37.615206],[-122.384714,37.615369],[-122.384336,37.615928]]},"steps":[{"maneuver":{"type":"depart","location":{"type":"Point","coordinates":[-122.413674,37.779583]},"instruction":"Head <span class=\"mapbox-directions-direction\">southwest</span> on <span class=\"mapbox-directions-way-name\">Market Street</span>"},"distance":283,"duration":25,"way_name":"Market Street","direction":"SW","heading":226,"mode":"driving"},{"maneuver":{"type":"bear right","location":{"type":"Point","coordinates":[-122.415948,37.777784]},"instruction":"Bear right onto <span class=\"mapbox-directions-way-name\">Hayes Street</span>"},"distance":186,"duration":15,"way_name":"Hayes Street","direction":"W","heading":261,"mode":"driving"},{"maneuver":{"type":"turn left","location":{"type":"Point","coordinates":[-122.418049,37.777505]},"instruction":"Turn left onto <span class=\"mapbox-directions-way-name\">Polk Street</span>"},"distance":122,"duration":10,"way_name":"Polk Street","direction":"S","heading":171,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.417533,37.776537]},"instruction":"Continue on <span class=\"mapbox-directions-way-name\">10th Street</span>"},"distance":971,"duration":77,"way_name":"10th Street","direction":"SE","heading":128,"mode":"driving"},{"maneuver":{"type":"bear left","location":{"type":"Point","coordinates":[-122.409766,37.770337]},"instruction":"Bear left"},"distance":532,"duration":41,"way_name":"","direction":"E","heading":94,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.405472,37.76726]},"instruction":"Continue on <span class=\"mapbox-directions-way-name\">US 101</span>"},"distance":136,"duration":6,"way_name":"US 101","direction":"S","heading":174,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.405244,37.766047]},"instruction":"Continue on <span class=\"mapbox-directions-way-name\">James Lick Freeway (US 101)</span>"},"distance":6832,"duration":305,"way_name":"James Lick Freeway (US 101)","direction":"S","heading":176,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.395121,37.708327]},"instruction":"Continue on <span class=\"mapbox-directions-way-name\">Bayshore Freeway (US 101)</span>"},"distance":8416,"duration":365,"way_name":"Bayshore Freeway (US 101)","direction":"S","heading":170,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.405024,37.638239]},"instruction":"Continue"},"distance":237,"duration":18,"way_name":"","direction":"S","heading":165,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.404272,37.636192]},"instruction":"Continue"},"distance":201,"duration":15,"way_name":"","direction":"S","heading":162,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.403855,37.634425]},"instruction":"Continue"},"distance":882,"duration":68,"way_name":"","direction":"S","heading":172,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.402519,37.626561]},"instruction":"Continue"},"distance":254,"duration":20,"way_name":"","direction":"S","heading":164,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.401619,37.62439]},"instruction":"Continue"},"distance":563,"duration":43,"way_name":"","direction":"S","heading":163,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.399983,37.6195]},"instruction":"Continue"},"distance":390,"duration":30,"way_name":"","direction":"S","heading":167,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.398804,37.616122]},"instruction":"Continue"},"distance":768,"duration":59,"way_name":"","direction":"SE","heading":150,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.392023,37.614744]},"instruction":"Continue"},"distance":121,"duration":14,"way_name":"","direction":"E","heading":73,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.390679,37.614994]},"instruction":"Continue"},"distance":124,"duration":15,"way_name":"","direction":"E","heading":76,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.389323,37.615274]},"instruction":"Continue"},"distance":514,"duration":7,"way_name":"","direction":"E","heading":70,"mode":"driving"},{"maneuver":{"type":"arrive","location":{"type":"Point","coordinates":[-122.384336,37.615928]},"instruction":"You have arrived at your destination"}}]}]}
 
-for (var i = 0; i < mapboxDirectionRoute.routes[0].steps.length; i++) {
-    var maneuver = mapboxDirectionRoute.routes[0].steps[i].maneuver;
-
-    L.circle([maneuver.location.coordinates[1], maneuver.location.coordinates[0]], 30, {
-        color: 'black',
-        weight: 1,
-        fillColor: 'black'
-    })
-        .bindPopup(maneuver.instruction + '. Step: ' + i)
-        .addTo(map);
-};
-
-},{"../../":1,"../fixtures/route":48,"leaflet-hash":2,"mapbox.js":19}],48:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 module.exports={"origin":{"type":"Feature","geometry":{"type":"Point","coordinates":[-75.17943572998047,39.92940139770508]},"properties":{"name":"Moore Street"}},"destination":{"type":"Feature","geometry":{"type":"Point","coordinates":[-75.1186752319336,39.941558837890625]},"properties":{"name":"Stevens Street"}},"waypoints":[],"routes":[{"distance":9107,"duration":714,"summary":"South Broad Street (PA 611) - Benjamin Franklin Bridge (I 676;US 30)","geometry":{"type":"LineString","coordinates":[[-75.179432,39.929399],[-75.180366,39.929521],[-75.180461,39.929084],[-75.178531,39.928842],[-75.176962,39.92864],[-75.175385,39.928444],[-75.175293,39.928868],[-75.1752,39.929295],[-75.175124,39.929659],[-75.175027,39.930089],[-75.173462,39.92989],[-75.172907,39.929811],[-75.17243,39.929743],[-75.171881,39.929671],[-75.171337,39.929607],[-75.170891,39.929552],[-75.170314,39.929475],[-75.169783,39.929413],[-75.169347,39.929354],[-75.168686,39.929268],[-75.168553,39.92925],[-75.168287,39.930469],[-75.168274,39.930527],[-75.168027,39.931662],[-75.167753,39.932919],[-75.167489,39.934128],[-75.167151,39.935673],[-75.166922,39.936727],[-75.166825,39.93717],[-75.166705,39.937719],[-75.166676,39.937855],[-75.166649,39.937978],[-75.166414,39.939052],[-75.166361,39.939294],[-75.166256,39.939779],[-75.166202,39.940025],[-75.166116,39.94042],[-75.166034,39.940795],[-75.165821,39.941807],[-75.165684,39.942399],[-75.165604,39.942767],[-75.165508,39.943204],[-75.165415,39.943634],[-75.165397,39.943715],[-75.165318,39.944075],[-75.165204,39.944599],[-75.165193,39.944648],[-75.165178,39.944719],[-75.165157,39.944815],[-75.165012,39.945481],[-75.164998,39.945544],[-75.164981,39.945627],[-75.164784,39.946603],[-75.164721,39.946915],[-75.16471,39.946971],[-75.164692,39.947049],[-75.164454,39.948136],[-75.16444,39.948198],[-75.164424,39.948275],[-75.164204,39.949276],[-75.164192,39.949334],[-75.164176,39.949403],[-75.164034,39.950049],[-75.164009,39.950163],[-75.16387,39.950796],[-75.163857,39.950856],[-75.163841,39.950927],[-75.163721,39.951483],[-75.163678,39.951548],[-75.163611,39.951594],[-75.163207,39.951537],[-75.163058,39.951529],[-75.162978,39.951535],[-75.16284,39.951576],[-75.162791,39.951609],[-75.162758,39.951656],[-75.162726,39.951721],[-75.162647,39.952071],[-75.162577,39.952142],[-75.162508,39.952188],[-75.162416,39.952213],[-75.162324,39.95222],[-75.161554,39.952122],[-75.161453,39.952109],[-75.16135,39.952096],[-75.159987,39.951934],[-75.159907,39.951925],[-75.159783,39.951909],[-75.158415,39.951735],[-75.158307,39.951721],[-75.158206,39.951708],[-75.15685,39.95154],[-75.156735,39.951525],[-75.15662,39.951511],[-75.155254,39.951341],[-75.155157,39.951329],[-75.155059,39.951317],[-75.153691,39.951147],[-75.153592,39.951135],[-75.153488,39.951122],[-75.15211,39.95095],[-75.151999,39.950937],[-75.151958,39.951074],[-75.151735,39.952074],[-75.15155,39.952899],[-75.151536,39.952958],[-75.151519,39.953036],[-75.151428,39.95345],[-75.151337,39.953902],[-75.151169,39.954745],[-75.151148,39.954853],[-75.151052,39.95484],[-75.149672,39.954664],[-75.14951,39.954644],[-75.149273,39.954662],[-75.149111,39.954685],[-75.148946,39.954725],[-75.148818,39.954774],[-75.148692,39.954835],[-75.148475,39.95497],[-75.148318,39.955074],[-75.148211,39.955131],[-75.148116,39.955164],[-75.147971,39.955201],[-75.147845,39.955201],[-75.147701,39.95519],[-75.147602,39.955176],[-75.146391,39.954957],[-75.139525,39.953775],[-75.134395,39.952838],[-75.123507,39.950921],[-75.123137,39.950847],[-75.122796,39.95075],[-75.122445,39.950645],[-75.12211,39.950539],[-75.121758,39.950401],[-75.121415,39.950223],[-75.121123,39.950072],[-75.1207,39.949824],[-75.119938,39.949309],[-75.119696,39.949065],[-75.119585,39.948876],[-75.119444,39.948446],[-75.119273,39.948212],[-75.119117,39.94808],[-75.118956,39.947957],[-75.118715,39.947858],[-75.118307,39.947751],[-75.1182,39.947661],[-75.118146,39.947583],[-75.118146,39.947519],[-75.11844,39.946489],[-75.118479,39.946386],[-75.118858,39.945221],[-75.119192,39.944086],[-75.119219,39.943439],[-75.119222,39.943383],[-75.119241,39.9428],[-75.119245,39.942666],[-75.119243,39.942551],[-75.119246,39.942405],[-75.119259,39.941574],[-75.118916,39.941569],[-75.118675,39.941562]]},"steps":[{"maneuver":{"type":"depart","location":{"type":"Point","coordinates":[-75.179432,39.929399]},"instruction":"Head <span class=\"mapbox-directions-direction\">west</span> on <span class=\"mapbox-directions-way-name\">Moore Street</span>"},"distance":80,"duration":21,"way_name":"Moore Street","direction":"W","heading":279,"mode":"driving"},{"maneuver":{"type":"turn left","location":{"type":"Point","coordinates":[-75.180366,39.929521]},"instruction":"Turn left onto <span class=\"mapbox-directions-way-name\">South 21st Street</span>"},"distance":49,"duration":7,"way_name":"South 21st Street","direction":"S","heading":190,"mode":"driving"},{"maneuver":{"type":"turn left","location":{"type":"Point","coordinates":[-75.180461,39.929084]},"instruction":"Turn left onto <span class=\"mapbox-directions-way-name\">McClellan Street</span>"},"distance":439,"duration":52,"way_name":"McClellan Street","direction":"E","heading":99,"mode":"driving"},{"maneuver":{"type":"turn left","location":{"type":"Point","coordinates":[-75.175385,39.928444]},"instruction":"Turn left onto <span class=\"mapbox-directions-way-name\">South 18th Street</span>"},"distance":186,"duration":24,"way_name":"South 18th Street","direction":"N","heading":9,"mode":"driving"},{"maneuver":{"type":"turn right","location":{"type":"Point","coordinates":[-75.175027,39.930089]},"instruction":"Turn right onto <span class=\"mapbox-directions-way-name\">Morris Street</span>"},"distance":560,"duration":71,"way_name":"Morris Street","direction":"E","heading":99,"mode":"driving"},{"maneuver":{"type":"turn left","location":{"type":"Point","coordinates":[-75.168553,39.92925]},"instruction":"Turn left onto <span class=\"mapbox-directions-way-name\">South Broad Street (PA 611)</span>"},"distance":2523,"duration":186,"way_name":"South Broad Street (PA 611)","direction":"N","heading":9,"mode":"driving"},{"maneuver":{"type":"bear right","location":{"type":"Point","coordinates":[-75.163611,39.951594]},"instruction":"Bear right onto <span class=\"mapbox-directions-way-name\">South Penn Square (PA 611)</span>"},"distance":34,"duration":2,"way_name":"South Penn Square (PA 611)","direction":"E","heading":100,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-75.163207,39.951537]},"instruction":"Continue on <span class=\"mapbox-directions-way-name\">East Penn Square (PA 611)</span>"},"distance":91,"duration":7,"way_name":"East Penn Square (PA 611)","direction":"E","heading":95,"mode":"driving"},{"maneuver":{"type":"bear right","location":{"type":"Point","coordinates":[-75.162647,39.952071]},"instruction":"Bear right onto <span class=\"mapbox-directions-way-name\">Market Street (SR2004)</span>"},"distance":382,"duration":31,"way_name":"Market Street (SR2004)","direction":"NE","heading":39,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-75.158307,39.951721]},"instruction":"Continue on <span class=\"mapbox-directions-way-name\">Market Street (SR 2004)</span>"},"distance":545,"duration":54,"way_name":"Market Street (SR 2004)","direction":"E","heading":98,"mode":"driving"},{"maneuver":{"type":"turn left","location":{"type":"Point","coordinates":[-75.151999,39.950937]},"instruction":"Turn left onto <span class=\"mapbox-directions-way-name\">North 7th Street</span>"},"distance":442,"duration":34,"way_name":"North 7th Street","direction":"N","heading":12,"mode":"driving"},{"maneuver":{"type":"turn right","location":{"type":"Point","coordinates":[-75.151148,39.954853]},"instruction":"Turn right onto <span class=\"mapbox-directions-way-name\">Race Street (SR3032)</span>"},"distance":142,"duration":11,"way_name":"Race Street (SR3032)","direction":"E","heading":96,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-75.14951,39.954644]},"instruction":"Continue"},"distance":150,"duration":11,"way_name":"","direction":"E","heading":84,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-75.147971,39.955201]},"instruction":"Continue on <span class=\"mapbox-directions-way-name\">I 676;US 30</span>"},"distance":137,"duration":7,"way_name":"I 676;US 30","direction":"E","heading":90,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-75.146391,39.954957]},"instruction":"Continue on <span class=\"mapbox-directions-way-name\">Benjamin Franklin Bridge (I 676;US 30)</span>"},"distance":2417,"duration":133,"way_name":"Benjamin Franklin Bridge (I 676;US 30)","direction":"E","heading":103,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-75.119585,39.948876]},"instruction":"Continue"},"distance":118,"duration":9,"way_name":"","direction":"S","heading":165,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-75.118956,39.947957]},"instruction":"Continue"},"distance":91,"duration":7,"way_name":"","direction":"SE","heading":118,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-75.118146,39.947519]},"instruction":"Continue on <span class=\"mapbox-directions-way-name\">Broadway ((551))</span>"},"distance":672,"duration":51,"way_name":"Broadway ((551))","direction":"S","heading":192,"mode":"driving"},{"maneuver":{"type":"turn left","location":{"type":"Point","coordinates":[-75.119259,39.941574]},"instruction":"Turn left onto <span class=\"mapbox-directions-way-name\">Stevens Street</span>"},"distance":50,"duration":6,"way_name":"Stevens Street","direction":"E","heading":91,"mode":"driving"},{"maneuver":{"type":"arrive","location":{"type":"Point","coordinates":[-75.118675,39.941562]},"instruction":"You have arrived at your destination"}}]}]}
+
+},{}],50:[function(require,module,exports){
+module.exports={"origin":{"type":"Feature","geometry":{"type":"Point","coordinates":[-122.48161315917969,37.70440673828125]},"properties":{"name":"Belmont Drive"}},"destination":{"type":"Feature","geometry":{"type":"Point","coordinates":[-122.47028350830078,37.693939208984375]},"properties":{"name":"Junipero Serra Freeway (I 280;CA 1)"}},"waypoints":[],"routes":[{"distance":4138,"duration":275,"summary":"John Daly Boulevard - Junipero Serra Freeway (I 280;CA 1)","geometry":{"type":"LineString","coordinates":[[-122.481619,37.704407],[-122.481616,37.704297],[-122.481614,37.704163],[-122.481665,37.703436],[-122.481672,37.703309],[-122.481671,37.703205],[-122.481663,37.703112],[-122.481651,37.703021],[-122.481632,37.702934],[-122.481604,37.702843],[-122.481573,37.702758],[-122.481509,37.70261],[-122.482434,37.702336],[-122.482306,37.702224],[-122.482255,37.702167],[-122.482214,37.702104],[-122.482121,37.702132],[-122.481424,37.702336],[-122.481155,37.702416],[-122.475676,37.704025],[-122.475536,37.704068],[-122.475168,37.704164],[-122.474777,37.704257],[-122.474471,37.70432],[-122.473877,37.704428],[-122.473852,37.704346],[-122.473787,37.704275],[-122.473707,37.704209],[-122.473601,37.704144],[-122.473074,37.703866],[-122.472959,37.703801],[-122.472842,37.703726],[-122.472736,37.703641],[-122.472645,37.703546],[-122.47257,37.703449],[-122.472511,37.703349],[-122.472464,37.703242],[-122.472411,37.70308],[-122.472279,37.702562],[-122.472224,37.702296],[-122.472177,37.702028],[-122.472141,37.70178],[-122.47182,37.699953],[-122.471538,37.697584],[-122.471449,37.697254],[-122.471334,37.696919],[-122.471205,37.696584],[-122.470767,37.695291],[-122.470672,37.694873],[-122.470642,37.694455],[-122.470623,37.694092],[-122.470624,37.69374],[-122.470634,37.692677],[-122.470632,37.691698],[-122.470627,37.691017],[-122.470744,37.690255],[-122.470767,37.690064],[-122.470822,37.689616],[-122.470951,37.689155],[-122.470994,37.689005],[-122.471046,37.688849],[-122.471243,37.688312],[-122.47178,37.686894],[-122.471844,37.686832],[-122.47193,37.686798],[-122.472033,37.686804],[-122.47211,37.686845],[-122.472153,37.686927],[-122.472222,37.687109],[-122.472223,37.687245],[-122.472235,37.687414],[-122.472236,37.687896],[-122.471774,37.687903],[-122.47147,37.687908],[-122.470549,37.687912],[-122.470298,37.687908],[-122.470122,37.688004],[-122.470018,37.688253],[-122.469993,37.6884],[-122.470029,37.689361],[-122.470084,37.690791],[-122.470257,37.692212],[-122.470268,37.693192],[-122.470279,37.693939]]},"steps":[{"maneuver":{"type":"depart","location":{"type":"Point","coordinates":[-122.481619,37.704407]},"instruction":"Head <span class=\"mapbox-directions-direction\">south</span> on <span class=\"mapbox-directions-way-name\">Belmont Drive</span>"},"distance":202,"duration":43,"way_name":"Belmont Drive","direction":"S","heading":180,"mode":"driving"},{"maneuver":{"type":"turn right","location":{"type":"Point","coordinates":[-122.481509,37.70261]},"instruction":"Turn right onto <span class=\"mapbox-directions-way-name\">North Mayfair Avenue</span>"},"distance":86,"duration":12,"way_name":"North Mayfair Avenue","direction":"W","heading":249,"mode":"driving"},{"maneuver":{"type":"sharp left","location":{"type":"Point","coordinates":[-122.482434,37.702336]},"instruction":"Make a sharp left"},"distance":15,"duration":2,"way_name":"","direction":"SE","heading":139,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.482306,37.702224]},"instruction":"Continue on <span class=\"mapbox-directions-way-name\">Park Plaza Drive</span>"},"distance":16,"duration":2,"way_name":"Park Plaza Drive","direction":"SE","heading":144,"mode":"driving"},{"maneuver":{"type":"turn left","location":{"type":"Point","coordinates":[-122.482214,37.702104]},"instruction":"Turn left onto <span class=\"mapbox-directions-way-name\">John Daly Boulevard</span>"},"distance":779,"duration":46,"way_name":"John Daly Boulevard","direction":"E","heading":69,"mode":"driving"},{"maneuver":{"type":"turn right","location":{"type":"Point","coordinates":[-122.473877,37.704428]},"instruction":"Turn right"},"distance":265,"duration":20,"way_name":"","direction":"S","heading":173,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.472279,37.702562]},"instruction":"Continue"},"distance":293,"duration":22,"way_name":"","direction":"S","heading":170,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.47182,37.699953]},"instruction":"Continue on <span class=\"mapbox-directions-way-name\">Junipero Serra Freeway (I 280)</span>"},"distance":264,"duration":10,"way_name":"Junipero Serra Freeway (I 280)","direction":"S","heading":174,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.471538,37.697584]},"instruction":"Continue on <span class=\"mapbox-directions-way-name\">Junipero Serra Freeway (I 280;CA 1)</span>"},"distance":740,"duration":28,"way_name":"Junipero Serra Freeway (I 280;CA 1)","direction":"S","heading":169,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.470627,37.691017]},"instruction":"Continue"},"distance":306,"duration":23,"way_name":"","direction":"S","heading":187,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.471243,37.688312]},"instruction":"Continue"},"distance":230,"duration":18,"way_name":"","direction":"S","heading":197,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.472222,37.687109]},"instruction":"Continue on <span class=\"mapbox-directions-way-name\">Sullivan Avenue</span>"},"distance":88,"duration":8,"way_name":"Sullivan Avenue","direction":"N","heading":0,"mode":"driving"},{"maneuver":{"type":"turn right","location":{"type":"Point","coordinates":[-122.472236,37.687896]},"instruction":"Turn right onto <span class=\"mapbox-directions-way-name\">Washington Street</span>"},"distance":171,"duration":14,"way_name":"Washington Street","direction":"E","heading":89,"mode":"driving"},{"maneuver":{"type":"bear left","location":{"type":"Point","coordinates":[-122.470298,37.687908]},"instruction":"Bear left"},"distance":64,"duration":5,"way_name":"","direction":"NE","heading":55,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.469993,37.6884]},"instruction":"Continue"},"distance":425,"duration":33,"way_name":"","direction":"N","heading":358,"mode":"driving"},{"maneuver":{"type":"continue","location":{"type":"Point","coordinates":[-122.470257,37.692212]},"instruction":"Continue on <span class=\"mapbox-directions-way-name\">Junipero Serra Freeway (I 280;CA 1)</span>"},"distance":192,"duration":7,"way_name":"Junipero Serra Freeway (I 280;CA 1)","direction":"N","heading":359,"mode":"driving"},{"maneuver":{"type":"arrive","location":{"type":"Point","coordinates":[-122.470279,37.693939]},"instruction":"You have arrived at your destination"}}]}]}
 
 },{}]},{},[47]);
