@@ -4,6 +4,8 @@
 -   Install: `npm install navigation.js --save`
 -   Test: `npm test`
 
+There is also a debug map. To run it locally, run `npm run build` and then `serve`. Then go to [`http://localhost:3000/tests/debug/`](http://localhost:3000/tests/debug/).
+
 Example:
 
 ```js
