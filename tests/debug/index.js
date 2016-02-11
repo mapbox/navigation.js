@@ -4,6 +4,7 @@ var activeTest = 0;
 L.mapbox.accessToken = 'pk.eyJ1IjoiYm9iYnlzdWQiLCJhIjoiTi16MElIUSJ9.Clrqck--7WmHeqqvtFdYig';
 var userLocation = { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [] }};
 var places = document.getElementById('places');
+var stepText = document.getElementById('step');
 
 // Routes to test
 var downtown = require('../fixtures/route');
@@ -85,5 +86,14 @@ map.on('mousemove', function(e) {
 
     var nextStep = navigation.findNextStep(userLocation, testCases[activeTest].route.routes[0]);
     marker.setLatLng([nextStep.snapToLocation.geometry.coordinates[1], nextStep.snapToLocation.geometry.coordinates[0]]);
-    document.getElementById('step').innerHTML = 'In ' + Math.round(nextStep.distance * 5280) + ' '+ testCases[activeTest].route.routes[0].steps[nextStep.step].maneuver.instruction;
+
+    stepText.innerHTML = 'In ' + Math.round(nextStep.distance * 5280) + ' '+ testCases[activeTest].route.routes[0].steps[nextStep.step].maneuver.instruction;
+
+    if (nextStep.alertUser) {
+        stepText.className = 'flash';
+        stepText.style.color = 'red';
+    } else {
+        stepText.className = '';
+        stepText.style.color = 'black';
+    }
 });

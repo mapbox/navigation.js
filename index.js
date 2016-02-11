@@ -10,7 +10,8 @@ module.exports = function(opts) {
     var options = {
         units: opts.units || 'miles',
         maxReRouteDistance: opts.maxReRouteDistance || 0.03,
-        maxSnapToLocation: opts.maxSnapToLocation || 0.01
+        maxSnapToLocation: opts.maxSnapToLocation || 0.01,
+        warnUserTime: opts.warnUserTime || 30
     };
 
     /**
@@ -66,9 +67,15 @@ module.exports = function(opts) {
                         var segmentEndPoint = { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: slicedSegment[slicedSegment.length - 1] }};
                         var segmentSlicedToUser = turfLineSlice(user, segmentEndPoint, segmentRoute);
 
-                        currentStep.distance = turfLineDistance(segmentSlicedToUser, options.units);
+                        var segmentDistance = turfLineDistance(segmentRoute, options.units);
+                        var userDistanceToEndStep = turfLineDistance(segmentSlicedToUser, options.units);
+                        var completePercent = userDistanceToEndStep / segmentDistance;
+                        var warnPercent = stepCoordinates[i - 1].duration > options.warnUserTime ? 1 - ((stepCoordinates[i - 1].duration - 30) / stepCoordinates[i - 1].duration) : 0;
+
+                        currentStep.distance = userDistanceToEndStep;
                         currentStep.absoluteDistance = turfDistance(user, segmentEndPoint, options.units);
                         currentStep.step = i;
+                        currentStep.alertUser = completePercent < warnPercent ? true : false;
                         currentStep.snapToLocation = distance < opts.maxSnapToLocation ? closestPoint : user;
                     }
                 }

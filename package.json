@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "eslint -c .eslintrc --no-eslintrc index.j test/*.test.js test/debug/index.js && tape tests/navigation.test.js ",
-    "debug-map": "watchify ./tests/debug/index.js -o 'uglifyjs -cm > ./tests/debug/bundle.js'",
+    "build": "watchify ./tests/debug/index.js -o ./tests/debug/bundle.js",
     "docs": "documentation-readme readme.md -s 'API Usage' documentation --format md --output readme.md"
   },
   "author": "",
