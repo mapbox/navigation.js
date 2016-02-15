@@ -2,6 +2,10 @@ var turfPointOnLine = require('turf-point-on-line');
 var turfDistance = require('turf-distance');
 var turfLineDistance = require('turf-line-distance');
 var turfLineSlice = require('turf-line-slice');
+var feetToMiles = 0.000189394;
+var metersToMiles = 0.000621371;
+var feetToKilometers = 0.0003048;
+var metersToKilometers = 1000;
 
 module.exports = function(opts) {
     /**
@@ -10,11 +14,13 @@ module.exports = function(opts) {
     */
     var options = {
         units: opts.units || 'miles',
-        maxReRouteDistance: opts.maxReRouteDistance || 0.0284091, // 150 ft
-        maxSnapToLocation: opts.maxSnapToLocation || 0.0094697,   // 50 ft
-        completionDistance: opts.completionDistance || 0.0094697, // 50 ft
-        warnUserTime: opts.warnUserTime || 30                     // 30 seconds
+        warnUserTime: opts.warnUserTime || 30 // seconds
     };
+
+    options.maxReRouteDistance = opts.maxReRouteDistance ? opts.maxReRouteDistance : opts.units === 'miles' ? 150 * feetToMiles : 150 * feetToKilometers;
+    options.maxSnapToLocation = opts.maxSnapToLocation ? opts.maxSnapToLocation : opts.units === 'miles' ? 50 * feetToMiles : 50 * feetToKilometers;
+    options.completionDistance = opts.completionDistance ? opts.completionDistance : opts.units === 'miles' ? 50 * feetToMiles : 50 * feetToKilometers;
+    options.shortCompletionDistance = opts.shortCompletionDistance ? opts.shortCompletionDistance : opts.units === 'miles' ? 10 * feetToMiles : 10 * feetToKilometers;
 
     /**
      * Given a user location and route, calculates closest step to user.
@@ -58,9 +64,9 @@ module.exports = function(opts) {
                         var completePercent = userDistanceToEndStep / segmentDistance;
                         var warnPercent = stepCoordinates[i - 1].duration > options.warnUserTime ? 1 - ((stepCoordinates[i - 1].duration - 30) / stepCoordinates[i - 1].duration) : 0;
 
-                        var stepDistance = options.units === 'miles' ? stepCoordinates[i - 1].distance * 0.000621371 : stepCoordinates[i].distance * 1000;
+                        var stepDistance = options.units === 'miles' ? stepCoordinates[i - 1].distance * metersToMiles : stepCoordinates[i].distance * metersToKilometers;
                         // If the step distance is less than options.completionDistance, modify it and make it 10 ft
-                        var modeifiedCompletionDistance = stepDistance < options.completionDistance ? 0.00189394 : options.completionDistance;
+                        var modeifiedCompletionDistance = stepDistance < options.completionDistance ? options.shortCompletionDistance : options.completionDistance;
                         currentStep.step = userDistanceToEndStep < modeifiedCompletionDistance && i < stepCoordinates.length - 1 ? userCurrentStep + 1 : userCurrentStep; // Don't set next step + 1 if at the end of the route
 
                         currentStep.distance = userDistanceToEndStep;
