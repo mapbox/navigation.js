@@ -6,6 +6,7 @@ var feetToMiles = 0.000189394;
 var metersToMiles = 0.000621371;
 var feetToKilometers = 0.0003048;
 var metersToKilometers = 1000;
+var metersToFeet = 3.28084;
 
 module.exports = function(opts) {
     /**
@@ -60,10 +61,6 @@ module.exports = function(opts) {
                         var segmentSlicedToUser = turfLineSlice(user, segmentEndPoint, segmentRoute);
                         var userDistanceToEndStep = turfLineDistance(segmentSlicedToUser, options.units);
 
-                        var segmentDistance = turfLineDistance(segmentRoute, options.units);
-                        var completePercent = userDistanceToEndStep / segmentDistance;
-                        var warnPercent = stepCoordinates[i - 1].duration > options.warnUserTime ? 1 - ((stepCoordinates[i - 1].duration - 30) / stepCoordinates[i - 1].duration) : 0;
-
                         var stepDistance = options.units === 'miles' ? stepCoordinates[i - 1].distance * metersToMiles : stepCoordinates[i].distance * metersToKilometers;
                         // If the step distance is less than options.completionDistance, modify it and make it 10 ft
                         var modeifiedCompletionDistance = stepDistance < options.completionDistance ? options.shortCompletionDistance : options.completionDistance;
@@ -72,8 +69,12 @@ module.exports = function(opts) {
                         currentStep.distance = userDistanceToEndStep;
                         currentStep.shouldReRoute = turfDistance(user, closestPoint, options.units) > options.maxReRouteDistance ? true : false;
                         currentStep.absoluteDistance = turfDistance(user, segmentEndPoint, options.units);
-                        currentStep.alertUser = completePercent < warnPercent ? true : false;
                         currentStep.snapToLocation = distance < opts.maxSnapToLocation ? closestPoint : user;
+
+                        currentStep.alertUserLevel = {
+                            low: userDistanceToEndStep < 2 && stepCoordinates[i - 1].distance * metersToMiles > 1, // Step must be longer than 1 miles
+                            high: (userDistanceToEndStep < 150 * feetToMiles) && stepCoordinates[i - 1].distance * metersToFeet > 150 // Step must be longer than 150 ft
+                        };
                     }
                 }
             }
