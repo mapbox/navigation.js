@@ -1,6 +1,6 @@
 {
   "name": "navigation.js",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -23,7 +23,7 @@
     "documentation-readme": "^2.1.1",
     "eslint": "^1.10.3",
     "leaflet-hash": "^0.2.1",
-    "mapbox.js": "^2.2.4",
+    "mapbox.js": "^2.3.0",
     "request": "^2.69.0",
     "tape": "^4.4.0",
     "uglifyjs": "^2.4.10",
