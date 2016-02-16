@@ -41,7 +41,8 @@ var testCases = [
 var activeTest = testCases[0].route.routes[0];
 var currentStep = 1;
 
-var map = L.mapbox.map('map', 'mapbox.streets').setView([39.9432, -75.1433], 14);
+var map = L.mapbox.map('map').setView([39.9432, -75.1433], 14);
+L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v8').addTo(map);
 var marker = L.marker([0, 0]).addTo(map);
 L.hash(map);
 routeGeoJSON.addTo(map);
