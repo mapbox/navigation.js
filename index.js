@@ -72,7 +72,7 @@ module.exports = function(opts) {
                         currentStep.snapToLocation = distance < opts.maxSnapToLocation ? closestPoint : user;
 
                         currentStep.alertUserLevel = {
-                            low: userDistanceToEndStep < 2 && stepCoordinates[i - 1].distance * metersToMiles > 1, // Step must be longer than 1 miles
+                            low: userDistanceToEndStep < 1 && stepCoordinates[i - 1].distance * metersToMiles > 1, // Step must be longer than 1 miles
                             high: (userDistanceToEndStep < 150 * feetToMiles) && stepCoordinates[i - 1].distance * metersToFeet > 150 // Step must be longer than 150 ft
                         };
                     }
