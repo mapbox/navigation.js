@@ -38,6 +38,8 @@ module.exports = function(opts) {
         var routeCoordinates = route.geometry.coordinates;
         var stepCoordinates = route.steps;
 
+        userCurrentStep = userCurrentStep === 0 ? 1 : userCurrentStep;
+
         for (var p = 0; p < routeCoordinates.length; p++) {
             if (arraysEqual(stepCoordinates[userCurrentStep].maneuver.location.coordinates, routeCoordinates[p])) {
                 var slicedSegment = routeCoordinates.slice(previousSlice, p + 1);

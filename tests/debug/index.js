@@ -39,7 +39,7 @@ var testCases = [
     }
 ];
 var activeTest = testCases[0].route.routes[0];
-var currentStep = 1;
+var currentStep = 0;
 
 var map = L.mapbox.map('map').setView([39.9432, -75.1433], 14);
 L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v8').addTo(map);
@@ -73,7 +73,7 @@ map.on('mousemove', function(e) {
             routeGeoJSON.clearLayers();
             addToMap(route);
             activeTest = route.routes[0];
-            currentStep = 1;
+            currentStep = 0;
         });
     }
 
