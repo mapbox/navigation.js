@@ -2,10 +2,12 @@
   "name": "navigation.js",
   "version": "1.0.0",
   "description": "",
+  "repository": "https://github.com/mapbox/navigation.js",
   "main": "index.js",
   "scripts": {
     "test": "eslint -c .eslintrc --no-eslintrc index.j test/*.test.js test/debug/index.js && tape tests/navigation.test.js ",
     "build": "browserify ./tests/debug/index.js -o ./tests/debug/bundle.js",
+    "start": "watchify ./tests/debug/index.js -o ./tests/debug/bundle.js",
     "docs": "documentation-readme readme.md -s 'API Usage' documentation --format md --output readme.md"
   },
   "author": "",
@@ -25,6 +27,7 @@
     "leaflet-hash": "^0.2.1",
     "mapbox.js": "^2.3.0",
     "request": "^2.69.0",
-    "tape": "^4.4.0"
+    "tape": "^4.4.0",
+    "watchify": "^3.7.0"
   }
 }
