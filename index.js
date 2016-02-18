@@ -39,43 +39,40 @@ module.exports = function(opts) {
         var stepCoordinates = route.steps;
 
         for (var p = 0; p < routeCoordinates.length; p++) {
-            for (var i = userCurrentStep; i <= userCurrentStep; i++) {
-                if (arraysEqual(stepCoordinates[i].maneuver.location.coordinates, routeCoordinates[p])) {
-                    var slicedSegment = routeCoordinates.slice(previousSlice, p + 1);
-                    previousSlice = p;
-                    var segmentRoute = {
-                        type: 'Feature',
-                        properties: {},
-                        geometry: {
-                            type: 'LineString',
-                            coordinates: slicedSegment
-                        }
-                    };
-                    var closestPoint = turfPointOnLine(segmentRoute, user);
-                    var distance = turfDistance(user, closestPoint, options.units);
-                    if (distance < currentMax) {
-
-                        currentMax = distance;
-
-                        var segmentEndPoint = { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: slicedSegment[slicedSegment.length - 1] }};
-                        var segmentSlicedToUser = turfLineSlice(user, segmentEndPoint, segmentRoute);
-                        var userDistanceToEndStep = turfLineDistance(segmentSlicedToUser, options.units);
-
-                        var stepDistance = options.units === 'miles' ? stepCoordinates[i - 1].distance * metersToMiles : stepCoordinates[i].distance * metersToKilometers;
-                        // If the step distance is less than options.completionDistance, modify it and make it 10 ft
-                        var modeifiedCompletionDistance = stepDistance < options.completionDistance ? options.shortCompletionDistance : options.completionDistance;
-                        currentStep.step = userDistanceToEndStep < modeifiedCompletionDistance && i < stepCoordinates.length - 1 ? userCurrentStep + 1 : userCurrentStep; // Don't set next step + 1 if at the end of the route
-
-                        currentStep.distance = userDistanceToEndStep;
-                        currentStep.shouldReRoute = turfDistance(user, closestPoint, options.units) > options.maxReRouteDistance ? true : false;
-                        currentStep.absoluteDistance = turfDistance(user, segmentEndPoint, options.units);
-                        currentStep.snapToLocation = distance < opts.maxSnapToLocation ? closestPoint : user;
-
-                        currentStep.alertUserLevel = {
-                            low: userDistanceToEndStep < 1 && stepCoordinates[i - 1].distance * metersToMiles > 1, // Step must be longer than 1 miles
-                            high: (userDistanceToEndStep < 150 * feetToMiles) && stepCoordinates[i - 1].distance * metersToFeet > 150 // Step must be longer than 150 ft
-                        };
+            if (arraysEqual(stepCoordinates[userCurrentStep].maneuver.location.coordinates, routeCoordinates[p])) {
+                var slicedSegment = routeCoordinates.slice(previousSlice, p + 1);
+                previousSlice = p;
+                var segmentRoute = {
+                    type: 'Feature',
+                    geometry: {
+                        type: 'LineString',
+                        coordinates: slicedSegment
                     }
+                };
+                var closestPoint = turfPointOnLine(segmentRoute, user);
+                var distance = turfDistance(user, closestPoint, options.units);
+                if (distance < currentMax) {
+
+                    currentMax = distance;
+
+                    var segmentEndPoint = { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: slicedSegment[slicedSegment.length - 1] }};
+                    var segmentSlicedToUser = turfLineSlice(user, segmentEndPoint, segmentRoute);
+                    var userDistanceToEndStep = turfLineDistance(segmentSlicedToUser, options.units);
+
+                    var stepDistance = options.units === 'miles' ? stepCoordinates[userCurrentStep - 1].distance * metersToMiles : stepCoordinates[userCurrentStep].distance * metersToKilometers;
+                    // If the step distance is less than options.completionDistance, modify it and make it 10 ft
+                    var modeifiedCompletionDistance = stepDistance < options.completionDistance ? options.shortCompletionDistance : options.completionDistance;
+                    currentStep.step = userDistanceToEndStep < modeifiedCompletionDistance && userCurrentStep < stepCoordinates.length - 1 ? userCurrentStep + 1 : userCurrentStep; // Don't set next step + 1 if at the end of the route
+
+                    currentStep.distance = userDistanceToEndStep;
+                    currentStep.shouldReRoute = turfDistance(user, closestPoint, options.units) > options.maxReRouteDistance ? true : false;
+                    currentStep.absoluteDistance = turfDistance(user, segmentEndPoint, options.units);
+                    currentStep.snapToLocation = distance < opts.maxSnapToLocation ? closestPoint : user;
+
+                    currentStep.alertUserLevel = {
+                        low: userDistanceToEndStep < 1 && stepCoordinates[userCurrentStep - 1].distance * metersToMiles > 1, // Step must be longer than 1 miles
+                        high: (userDistanceToEndStep < 150 * feetToMiles) && stepCoordinates[userCurrentStep - 1].distance * metersToFeet > 150 // Step must be longer than 150 ft
+                    };
                 }
             }
         }
