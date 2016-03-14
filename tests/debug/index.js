@@ -2,16 +2,26 @@ require('mapbox.js');
 require('leaflet-hash');
 var request = require('request');
 var debounce = require('debounce');
+var endpoint = require('./endpoint');
+var polyline = require('polyline');
 
+// Setup map
 L.mapbox.accessToken = 'pk.eyJ1IjoiYm9iYnlzdWQiLCJhIjoiTi16MElIUSJ9.Clrqck--7WmHeqqvtFdYig';
+var map = L.mapbox.map('map').setView([39.9432, -75.1433], 14);
+L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v8').addTo(map);
+L.hash(map);
+var marker = L.marker([0, 0]).addTo(map);
+var routeGeoJSON = L.layerGroup().addTo(map);
 var userLocation = { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [] }};
-var places = document.getElementById('places');
-var routeGeoJSON = L.layerGroup();
+L.geoJson(require('../fixtures/downtown').routes[0].geometry).addTo(routeGeoJSON);
 
-// Routes to test
-var downtown = require('../fixtures/downtown');
-var loop = require('../fixtures/routeSF');
-var highway = require('../fixtures/highway');
+var activeRoute = require('../fixtures/downtown').routes[0];
+var stepDiv = document.getElementById('step');
+
+// Navigation.js can handle both geometries=polyline and geometries=geojson
+// However, the Mapbox directions API will default to geometries=geojson
+var geometries = 'polyline';
+// var geometries = 'geojson';
 
 // Setup navigation.js
 var navigation = require('../../')({
@@ -20,87 +30,59 @@ var navigation = require('../../')({
     maxSnapToLocation: 0.01
 });
 
-var testCases = [
-    {
-        center: [39.9432, -75.1433],
-        zoom: 14,
-        route: downtown,
-        name: 'City, downtown'
-    }, {
-        center: [37.6953, -122.4743],
-        zoom: 15,
-        route: loop,
-        name: 'Route passes over itself'
-    }, {
-        center: [37.7655, -122.4083],
-        zoom: 15,
-        route: highway,
-        name: 'Highway'
-    }
-];
-var activeTest = testCases[0].route.routes[0];
-var currentStep = 1;
-
-var map = L.mapbox.map('map').setView([39.9432, -75.1433], 14);
-L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v8').addTo(map);
-var marker = L.marker([0, 0]).addTo(map);
-L.hash(map);
-routeGeoJSON.addTo(map);
-
-for (var i = 0; i < testCases.length; i++) {
-    var div = document.createElement('div');
-    div.innerHTML = '<a href=# data-route=' + i + ' data-name=' + i + ' data-lng=' + testCases[i].center[1] + ' data-lat=' + testCases[i].center[0] + ' data-zoom=' + testCases[i].zoom + '>' + testCases[i].name + '</a>';
-    places.appendChild(div);
-    div.addEventListener('click', function(e) {
-        map.setView([e.target.dataset.lat, e.target.dataset.lng], e.target.dataset.zoom);
-        activeTest = testCases[parseInt(e.target.dataset.route)].route.routes[0];
-        addToMap(testCases[parseInt(e.target.dataset.route)].route);
-    });
-};
-
-addToMap(testCases[0].route);
+// Alwats set the initial step to
+var currentStep = 0;
 
 map.on('mousemove', function(e) {
     userLocation.geometry.coordinates[0] = e.latlng.lng;
     userLocation.geometry.coordinates[1] = e.latlng.lat;
 
-    var nextStep = navigation.findNextStep(userLocation, activeTest, currentStep);
-    document.getElementById('reroute').innerHTML = nextStep.shouldReRoute;
+    var stepInfo = navigation.getCurrentStep(userLocation, activeRoute.legs[0], currentStep);
 
-    if (nextStep.shouldReRoute) {
-        var last = activeTest.geometry.coordinates[activeTest.geometry.coordinates.length - 1];
-        getRouteDebounced(e.latlng.lng, e.latlng.lat, last[0], last[1], function(err, route) {
+    // Display whether user should reroute in UI
+    document.getElementById('reroute').innerHTML = stepInfo.shouldReRoute;
+
+    // If the user is off the route, `shouldReRoute` will be true
+    // In this case, recalculate the route, clear the current route, add the new route
+    // and most importantly, reset the currentStep to 0
+    if (stepInfo.shouldReRoute) {
+        getRoute(e.latlng.lng, e.latlng.lat, -75.118674, 39.94156, function(err, route) {
             routeGeoJSON.clearLayers();
-            addToMap(route);
-            activeTest = route.routes[0];
-            currentStep = 1;
+
+            // This example shows how to handle both encoded polylines and GeoJSON
+            if (typeof route.routes[0].geometry === 'string') {
+                L.geoJson(polyline.toGeoJSON(route.routes[0].geometry)).addTo(routeGeoJSON);
+            } else {
+                L.geoJson(route.routes[0].geometry).addTo(routeGeoJSON);
+            }
+
+            activeRoute = route.routes[0];
+            currentStep = 0;
         });
     }
 
-    if (nextStep.step > currentStep) currentStep = nextStep.step;
-    marker.setLatLng([nextStep.snapToLocation.geometry.coordinates[1], nextStep.snapToLocation.geometry.coordinates[0]]);
-    document.getElementById('step').innerHTML = 'In ' + Math.round(nextStep.distance * 5280) + ' '+ activeTest.steps[nextStep.step].maneuver.instruction;
+    // Flash the instructions to signal to the user the maneuver is coming up soon
+    if (stepInfo.alertUserLevel.high) {
+        if (!stepDiv.classList.contains('flash')) stepDiv.classList.add('flash');
+    }
+
+    // If the calculated step is greater than the users current step, update it
+    // This means the user completed the current step. Also, turn off flashing
+    if (stepInfo.step > currentStep) {
+        currentStep = stepInfo.step;
+        stepDiv.classList.remove('flash');
+    }
+
+    // Get the instruction of the next step and display it
+    document.getElementById('step').innerHTML = 'In ' + Math.round(stepInfo.distance * 5280) + 'ft '+ activeRoute.legs[0].steps[stepInfo.step + 1].maneuver.instruction;
+
+    // Snap the marker to closest point along the route
+    marker.setLatLng([stepInfo.snapToLocation.geometry.coordinates[1], stepInfo.snapToLocation.geometry.coordinates[0]]);
 });
 
-function getRoute(fromLng, fromLat, toLng, toLat, callback) {
-    request('https://api.mapbox.com/v4/directions/mapbox.driving/' + fromLng + ',' + fromLat + ';' + toLng + ',' + toLat + '.json?alternatives=false&steps=true&access_token=pk.eyJ1IjoiYm9iYnlzdWQiLCJhIjoiTi16MElIUSJ9.Clrqck--7WmHeqqvtFdYig', function(err, res, body) {
+var getRoute = debounce(function(fromLng, fromLat, toLng, toLat, callback) {
+    request(endpoint + fromLng + ',' + fromLat + ';' + toLng + ',' + toLat + '.json?geometries=' + geometries + '&overview=full&steps=true&access_token=pk.eyJ1IjoiYm9iYnlzdWQiLCJhIjoiTi16MElIUSJ9.Clrqck--7WmHeqqvtFdYig', function(err, res, body) {
         if (err) return callback(err);
         if (body && res.statusCode === 200) return callback(null, JSON.parse(body));
     });
-}
-var getRouteDebounced = debounce(getRoute, 1000);
-
-function addToMap(route) {
-    L.geoJson({
-        'type': 'FeatureCollection',
-        'features': [
-            {
-                'type': 'Feature',
-                'geometry': {
-                    'type': 'LineString',
-                    'coordinates': route.routes[0].geometry.coordinates
-                }
-            }
-        ]
-    }).addTo(routeGeoJSON);
-}
+}, 1000);
