@@ -6,9 +6,9 @@
   "main": "index.js",
   "scripts": {
     "test": "eslint -c .eslintrc --no-eslintrc index.j test/*.test.js test/debug/index.js && tape tests/navigation.test.js ",
-    "build": "browserify ./tests/debug/index.js -o ./tests/debug/bundle.js",
-    "start": "watchify ./tests/debug/index.js -o ./tests/debug/bundle.js",
-    "docs": "documentation-readme readme.md -s 'API Usage' documentation --format md --output readme.md"
+    "docs": "documentation-readme readme.md -s 'API Usage' documentation --format md --output readme.md",
+    "start": "budo tests/debug/index.js:tests/debug/bundle.js --live --dir tests/debug/",
+    "build": "browserify ./tests/debug/index.js -o | uglifyjs -c -m > ./tests/debug/bundle.js"
   },
   "author": "",
   "license": "ISC",
@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "browserify": "^13.0.0",
+    "budo": "^8.0.4",
     "debounce": "^1.0.0",
     "documentation": "^3.0.4",
     "documentation-readme": "^2.1.1",
@@ -28,6 +29,6 @@
     "mapbox.js": "^2.3.0",
     "request": "^2.69.0",
     "tape": "^4.4.0",
-    "watchify": "^3.7.0"
+    "uglify-js": "^2.6.2"
   }
 }
