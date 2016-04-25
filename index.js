@@ -1,4 +1,4 @@
 module.exports = {
-  currentStep: require('./lib/current-step'),
-  nextStep: require('./lib/next-step')
+  currentStep: require('./lib/currentStep'),
+  nextStep: require('./lib/nextStep')
 };

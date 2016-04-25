@@ -5,7 +5,7 @@
   "repository": "https://github.com/mapbox/navigation.js",
   "main": "index.js",
   "scripts": {
-    "test": "eslint -c .eslintrc --no-eslintrc index.j test/*.test.js test/debug/index.js && tape tests/navigation.test.js ",
+    "test": "eslint -c .eslintrc --no-eslintrc index.j test/*.test.js test/debug/index.js && tape tests/currentStep.test.js && tape tests/nextStep.test.js ",
     "docs": "documentation-readme readme.md -s 'API Usage' documentation --format md --output readme.md",
     "start": "budo tests/debug/index.js:bundle.js --live --dir tests/debug/",
     "build": "browserify ./tests/debug/index.js -o | uglifyjs -c -m > ./tests/debug/bundle.js"
@@ -30,6 +30,8 @@
     "mapbox.js": "^2.3.0",
     "request": "^2.69.0",
     "tape": "^4.4.0",
+    "turf-along": "^1.0.2",
+    "turf-line-distance": "^1.0.2",
     "uglify-js": "^2.6.2"
   }
 }
