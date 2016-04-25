@@ -2,7 +2,7 @@ var test = require('tape');
 var route = require('./fixtures/route');
 
 test('userToRoute should reRoute', function(t) {
-    var navigation = require('../')({ units: 'miles' });
+    var navigation = require('../').nextStep({ units: 'miles' });
     var user = {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [-75.22331008911133, 39.94409450436698]}};
     var nav = navigation.findNextStep(user, route.routes[0].legs[0], 0);
     t.equal(nav.shouldReRoute, true);
@@ -17,7 +17,7 @@ test('userToRoute should reRoute', function(t) {
 });
 
 test('userToRoute should not reRoute', function(t) {
-    var navigation = require('../')({ units: 'miles' });
+    var navigation = require('../').nextStep({ units: 'miles' });
     var user = {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [-75.12331008911133, 39.94409450436698]}};
     var nav = navigation.findNextStep(user, route.routes[0].legs[0], 0);
     t.equal(nav.shouldReRoute, false);
@@ -32,7 +32,7 @@ test('userToRoute should not reRoute', function(t) {
 });
 
 test('should signal next step', function(t) {
-    var navigation = require('../')({ units: 'miles' });
+    var navigation = require('../').nextStep({ units: 'miles' });
     var user = {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [-75.121567, 39.944115]}};
     var nav = navigation.findNextStep(user, route.routes[0].legs[0], 0);
     t.equal(nav.shouldReRoute, false);
@@ -47,7 +47,7 @@ test('should signal next step', function(t) {
 });
 
 test('should not signal next step if bearing is provided and not within threshold', function(t) {
-    var navigation = require('../')({ units: 'miles' });
+    var navigation = require('../').nextStep({ units: 'miles' });
     var user = {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [-75.121567, 39.944115]}};
     var nav = navigation.findNextStep(user, route.routes[0].legs[0], 0, 90);
     t.equal(nav.shouldReRoute, false);
@@ -62,7 +62,7 @@ test('should not signal next step if bearing is provided and not within threshol
 });
 
 test('should signal next step if bearing is provided and is within threshold', function(t) {
-    var navigation = require('../')({ units: 'miles' });
+    var navigation = require('../').nextStep({ units: 'miles' });
     var user = {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [-75.121567, 39.944115]}};
     var nav = navigation.findNextStep(user, route.routes[0].legs[0], 0, 160);
     t.equal(nav.shouldReRoute, false);
@@ -77,7 +77,7 @@ test('should signal next step if bearing is provided and is within threshold', f
 });
 
 test('userToRoute should not reRoute and uses kilometers', function(t) {
-    var navigation = require('../')({ units: 'kilometers' });
+    var navigation = require('../').nextStep({ units: 'kilometers' });
     var user = {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [-75.12331008911133, 39.94409450436698]}};
     var nav = navigation.findNextStep(user, route.routes[0].legs[0], 0);
     t.equal(nav.shouldReRoute, false);

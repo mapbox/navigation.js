@@ -15,7 +15,7 @@ var loop = require('../fixtures/routeSF');
 var highway = require('../fixtures/highway');
 
 // Setup navigation.js
-var navigation = require('../../')({
+var navigation = require('../../').nextStep({
     units: 'miles',
     maxReRouteDistance: 0.03,
     maxSnapToLocation: 0.01
