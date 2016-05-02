@@ -58,12 +58,13 @@ module.exports = function(opts) {
         //
         var stepDistance = options.units === 'miles' ? route.steps[userCurrentStep].distance * metersToMiles : stepCoordinates[userCurrentStep].distance * metersToKilometers;
         // If the step distance is less than options.completionDistance, modify it and make it 10 ft
-        var modeifiedCompletionDistance = stepDistance < options.completionDistance ? options.shortCompletionDistance : options.completionDistance;
+        var modifiedCompletionDistance = stepDistance < options.completionDistance ? options.shortCompletionDistance : options.completionDistance;
         // Check if users bearing is within threshold of the steps exit bearing
         var withinBearingThreshold = userBearing ? Math.abs(userBearing - route.steps[userCurrentStep].maneuver.bearing_after) <= options.userBearingCompleteThreshold ? true : false : true;
-        currentStep.step = withinBearingThreshold && (userDistanceToEndStep < modeifiedCompletionDistance) ? userCurrentStep + 1 : userCurrentStep; // Don't set next step + 1 if at the end of the route
+        currentStep.step = withinBearingThreshold && (userDistanceToEndStep < modifiedCompletionDistance) ? userCurrentStep + 1 : userCurrentStep; // Don't set next step + 1 if at the end of the route
 
         currentStep.distance = userDistanceToEndStep;
+        currentStep.stepDistance = stepDistance;
         currentStep.shouldReRoute = turfDistance(user, closestPoint, options.units) > options.maxReRouteDistance ? true : false;
         currentStep.absoluteDistance = turfDistance(user, segmentEndPoint, options.units);
         currentStep.snapToLocation = distance < opts.maxSnapToLocation ? closestPoint : user;
