@@ -5,6 +5,7 @@
 <title>Navigation.js</title>
 <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
 <link href='https://api.mapbox.com/mapbox.js/v2.2.4/mapbox.css' rel='stylesheet' />
+<link rel="stylesheet" href="https://www.mapbox.com/base/latest/base.css?v1.0" media="screen" title="no title" charset="utf-8">
 <style>
   body { margin:0; padding:0; font-family: 'Open Sans', 'Helvetica Neue', sans-serif; }
   #map { position:absolute; top:0; bottom:0; width:100%; }
@@ -12,10 +13,7 @@
       position: absolute;
       top: 0;
       right: 0;
-      padding: 20px;
       z-index: 10;
-      background-color: white;
-      min-width: 290px;
   }
   #places {
       position: absolute;
@@ -31,15 +29,20 @@
       text-decoration: none;
   }
 
+  .flash {
+      animation: flasher 1s linear infinite;
+  }
+
+  @keyframes flasher {
+      50% { opacity: 0.0; }
+  }
+
 </style>
 </head>
 <body>
-<div class='container'>
-    <p id='step'></p>
-    <p>Should you re-route the user: <span id='reroute'></span></p>
-</div>
-<div id='places'>
-    <p>Select a route to test</p>
+<div class='container keyline-bottom keyline-left round-left round-bottom fill-white pad4'>
+    <h3 class='strong space-bottom2' id='step'></h3>
+    <p class='quiet'>Should you re-route the user: <span class='strong' id='reroute'></span></p>
 </div>
 <div id='map'></div>
 <script src='bundle.js'></script>
