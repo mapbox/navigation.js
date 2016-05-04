@@ -7,7 +7,7 @@ var polyline = require('polyline');
 
 // Setup map
 L.mapbox.accessToken = 'pk.eyJ1IjoiYm9iYnlzdWQiLCJhIjoiTi16MElIUSJ9.Clrqck--7WmHeqqvtFdYig';
-var map = L.mapbox.map('map').setView([39.9432, -75.1433], 14);
+var map = L.mapbox.map('map').setView([39.9229, -75.1351], 14);
 L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v8').addTo(map);
 L.hash(map);
 var marker = L.marker([0, 0]).addTo(map);
@@ -30,7 +30,7 @@ var navigation = require('../../')({
     maxSnapToLocation: 0.01
 });
 
-// Alwats set the initial step to
+// Alwats set the initial step to 0
 var currentStep = 0;
 
 map.on('mousemove', function(e) {
@@ -48,6 +48,7 @@ map.on('mousemove', function(e) {
     if (stepInfo.shouldReRoute) {
         getRoute(e.latlng.lng, e.latlng.lat, -75.118674, 39.94156, function(err, route) {
             routeGeoJSON.clearLayers();
+            stepDiv.classList.remove('flash');
 
             // This example shows how to handle both encoded polylines and GeoJSON
             if (typeof route.routes[0].geometry === 'string') {
@@ -74,7 +75,7 @@ map.on('mousemove', function(e) {
     }
 
     // Get the instruction of the next step and display it
-    document.getElementById('step').innerHTML = 'In ' + Math.round(stepInfo.distance * 5280) + 'ft '+ activeRoute.legs[0].steps[stepInfo.step + 1].maneuver.instruction;
+    document.getElementById('step').innerHTML = 'In ' + Math.round(stepInfo.distance * 5280) + ' ft '+ activeRoute.legs[0].steps[stepInfo.step + 1].maneuver.instruction;
 
     // Snap the marker to closest point along the route
     marker.setLatLng([stepInfo.snapToLocation.geometry.coordinates[1], stepInfo.snapToLocation.geometry.coordinates[0]]);
