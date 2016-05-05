@@ -1,3 +1,2 @@
 node_modules
 tests/debug/bundle.js
-tests/debug/endpoint.js

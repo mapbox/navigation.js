@@ -2,7 +2,7 @@ require('mapbox.js');
 require('leaflet-hash');
 var request = require('request');
 var debounce = require('debounce');
-var endpoint = require('./endpoint');
+var endpoint = 'https://api.mapbox.com/directions/v5/mapbox/driving/';
 var polyline = require('polyline');
 
 // Setup map
