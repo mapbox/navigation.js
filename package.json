@@ -14,10 +14,10 @@
   "license": "ISC",
   "dependencies": {
     "polyline": "^0.2.0",
-    "turf-distance": "^1.1.0",
-    "turf-line-distance": "^1.0.2",
-    "turf-line-slice": "^1.3.4",
-    "turf-point-on-line": "^1.0.2"
+    "turf-distance": "^3.0.1",
+    "turf-line-distance": "^3.0.1",
+    "turf-line-slice": "^3.0.1",
+    "turf-point-on-line": "^3.0.1"
   },
   "devDependencies": {
     "browserify": "^13.0.0",
