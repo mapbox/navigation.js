@@ -67,7 +67,7 @@ module.exports = function(opts) {
         //   1. Are they within a certain threshold of the end of the step?
         //   2. If a bearing is provided, is their bearing within a current threshold of the exit bearing for the step
         //
-        var stepDistance = options.units === 'miles' ? route.steps[userCurrentStep].distance * metersToMiles : route.steps[userCurrentStep].distance * metersToKilometers;
+        var stepDistance = turfLineDistance(segmentRoute, options.units);
         // If the step distance is less than options.completionDistance, modify it and make it 10 ft
         var modifiedCompletionDistance = stepDistance < options.completionDistance ? options.shortCompletionDistance : options.completionDistance;
         // Check if users bearing is within threshold of the steps exit bearing
