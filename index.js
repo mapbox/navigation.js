@@ -7,7 +7,6 @@ var polyline = require('polyline');
 var feetToMiles = 0.000189394;
 var metersToMiles = 0.000621371;
 var feetToKilometers = 0.0003048;
-var metersToKilometers = 1000;
 var metersToFeet = 3.28084;
 
 module.exports = function(opts) {
@@ -69,13 +68,15 @@ module.exports = function(opts) {
         //
         var stepDistance = turfLineDistance(segmentRoute, options.units);
         // If the step distance is less than options.completionDistance, modify it and make it 10 ft
-        var modifiedCompletionDistance = stepDistance < options.completionDistance ? options.shortCompletionDistance : options.completionDistance;
+        var modifiedCompletionDistance = stepDistance < options.completionDistance
+            ? options.shortCompletionDistance : options.completionDistance;
         // Check if users bearing is within threshold of the steps exit bearing
-        var withinBearingThreshold = userBearing ? Math.abs(userBearing - route.steps[userCurrentStep].maneuver.bearing_after) <= options.userBearingCompleteThreshold ? true : false : true;
+        var withinBearingThreshold = userBearing ? Math.abs(userBearing - route.steps[userCurrentStep + 1].maneuver.bearing_after) <= options.userBearingCompleteThreshold ? true : false : true;
 
         // Do not increment userCurrentStep if the user is approaching the final step
         if (userCurrentStep < route.steps.length - 2) {
-            currentStep.step = withinBearingThreshold && (userDistanceToEndStep < modifiedCompletionDistance) ? userCurrentStep + 1 : userCurrentStep; // Don't set next step + 1 if at the end of the route
+            currentStep.step = withinBearingThreshold && (userDistanceToEndStep < modifiedCompletionDistance)
+                ? userCurrentStep + 1 : userCurrentStep; // Don't set next step + 1 if at the end of the route
         } else {
             currentStep.step = userCurrentStep;
         }
