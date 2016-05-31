@@ -5,7 +5,7 @@
 <title>Navigation.js</title>
 <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
 <link href='https://api.mapbox.com/mapbox.js/v2.2.4/mapbox.css' rel='stylesheet' />
-<link rel="stylesheet" href="https://www.mapbox.com/base/latest/base.css?v1.0" media="screen" title="no title" charset="utf-8">
+<link rel='stylesheet' href='https://www.mapbox.com/base/latest/base.css?v1.0' media='screen' title='no title' charset='utf-8'>
 <style>
   body { margin:0; padding:0; font-family: 'Open Sans', 'Helvetica Neue', sans-serif; }
   #map { position:absolute; top:0; bottom:0; width:100%; }
@@ -37,6 +37,12 @@
       50% { opacity: 0.0; }
   }
 
+  .arrows {
+      bottom: 0;
+      left:0;
+      position: absolute;
+  }
+
 </style>
 </head>
 <body>
@@ -45,6 +51,15 @@
     <p class='quiet'>Should you re-route the user: <span class='strong' id='reroute'></span></p>
 </div>
 <div id='map'></div>
+<div class='fill-white arrows pad1 keyline-top keyline-right round-top round-right unround-bottom'>
+    <p>
+        <strong class='small pad1x'>User direction of travel</strong><img src='./arrow.png' height='15px' id='user-arrow'  />
+    </p>
+    <p>
+        <strong class='small pad1x'>Next maneuver angle</strong><img src='./arrow.png' height='15px' id='turn-arrow' />
+    </p>
+</div>
+
 <script src='bundle.js'></script>
 </body>
 </html>
