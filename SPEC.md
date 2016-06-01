@@ -7,7 +7,7 @@ The goal of this specification is to outline the rules and ideas this library ad
 By default, the metric system should be used where available.
 
 ### Concepts
-Navigation.js looks at a single step along a greater route. All calculations are done against this step and not against the whole route. Once a step is completed, the next step on the route can be compared. If the user is no longer on the current step, the developer should re-route the user and also set their internal step counter back to 0.
+Navigation.js looks at a single step along a greater route. All calculations are done against this step and not against the whole route. Once a step is completed, the next step on the route can be compared. If the user is no longer on the current step, the developer should re-route the user and also set their internal step counter back to 0. The developer is required to keep track of the current step at all times.
 
 ### Re-routing
 If at any time the user is not within `45 meters` of any point on the current step, re-route the user.
