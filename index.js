@@ -5,9 +5,9 @@ var turfLineSlice = require('turf-line-slice');
 var polyline = require('polyline');
 
 var feetToMiles = 0.000189394;
-var metersToMiles = 0.000621371;
 var feetToKilometers = 0.0003048;
 var metersToFeet = 3.28084;
+var userHasEnteredManeuverZone = false;
 
 module.exports = function(opts) {
     /**
@@ -16,7 +16,6 @@ module.exports = function(opts) {
     */
     var options = {
         units: opts.units || 'miles',
-        warnUserTime: opts.warnUserTime || 30, // seconds
         userBearingCompleteThreshold: opts.userBearingCompleteThreshold || 30
     };
 
@@ -60,6 +59,7 @@ module.exports = function(opts) {
         var segmentEndPoint = { type: 'Feature', geometry: { type: 'Point', coordinates: stepCoordinates[stepCoordinates.length - 1] }};
         var segmentSlicedToUser = turfLineSlice(user, segmentEndPoint, segmentRoute);
         var userDistanceToEndStep = turfLineDistance(segmentSlicedToUser, options.units);
+        var userAbsoluteDistance = turfDistance(user, segmentEndPoint, options.units);
 
         //
         // Check if user has completed step. Two factors:
@@ -71,26 +71,42 @@ module.exports = function(opts) {
         var modifiedCompletionDistance = stepDistance < options.completionDistance
             ? options.shortCompletionDistance : options.completionDistance;
         // Check if users bearing is within threshold of the steps exit bearing
-        var withinBearingThreshold = userBearing ? Math.abs(userBearing - route.steps[userCurrentStep + 1].maneuver.bearing_after) <= options.userBearingCompleteThreshold ? true : false : true;
+        var withinBearingThreshold = userBearing ? Math.abs(userBearing - route.steps[userCurrentStep + 1].maneuver.bearing_after) <= options.userBearingCompleteThreshold ? true : false : false;
 
+        currentStep.snapToLocation = distance < opts.maxSnapToLocation ? closestPoint : user;
         // Do not increment userCurrentStep if the user is approaching the final step
         if (userCurrentStep < route.steps.length - 2) {
-            currentStep.step = withinBearingThreshold && (userDistanceToEndStep < modifiedCompletionDistance)
-                ? userCurrentStep + 1 : userCurrentStep; // Don't set next step + 1 if at the end of the route
+            if (userDistanceToEndStep < modifiedCompletionDistance) {
+                userHasEnteredManeuverZone = true;
+                currentStep.snapToLocation = user;
+            } else {
+                userHasEnteredManeuverZone = false;
+            }
+
+            // Use the users absolute distance from the end of the maneuver point
+            // Otherwise, as they move away from the maneuver point,
+            // the distance will remain 0 since we're snapping to the closest point on the line
+            if (userHasEnteredManeuverZone && (userAbsoluteDistance > modifiedCompletionDistance || withinBearingThreshold)) {
+                currentStep.step = userCurrentStep + 1;
+            } else {
+                currentStep.step = userCurrentStep;
+                userHasEnteredManeuverZone = false;
+            }
         } else {
             currentStep.step = userCurrentStep;
+            userHasEnteredManeuverZone = false;
         }
 
         currentStep.distance = userDistanceToEndStep;
         currentStep.stepDistance = stepDistance;
+        currentStep.absoluteDistance = userAbsoluteDistance;
         currentStep.shouldReRoute = turfDistance(user, closestPoint, options.units) > options.maxReRouteDistance ? true : false;
-        currentStep.absoluteDistance = turfDistance(user, segmentEndPoint, options.units);
-        currentStep.snapToLocation = distance < opts.maxSnapToLocation ? closestPoint : user;
 
         // Alert levels
         currentStep.alertUserLevel = {
-            low: userDistanceToEndStep < 1 && route.steps[userCurrentStep].distance * metersToMiles > 1, // Step must be longer than 1 miles
-            high: (userDistanceToEndStep < 150 * feetToMiles) && route.steps[userCurrentStep].distance * metersToFeet > 150 // Step must be longer than 150 ft
+            low: (userDistanceToEndStep < 52800 * feetToMiles) && route.steps[userCurrentStep].distance * metersToFeet > 52800, // Step must be longer than 10 miles,
+            medium: (userDistanceToEndStep < 1000 * feetToMiles) && route.steps[userCurrentStep].distance * metersToFeet > 1000, // Step must be longer than 1000 ft,
+            high: (userDistanceToEndStep < 300 * feetToMiles) && route.steps[userCurrentStep].distance * metersToFeet > 300 // Step must be longer than 300 ft
         };
         return currentStep;
     };
